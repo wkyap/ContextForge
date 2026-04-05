@@ -1,0 +1,85 @@
+# ═══════════════════════════════════════════════════════
+# ContextForge — LiteLLM Configuration
+# Three model tiers for cost-optimized routing:
+#   small  → cheap tasks (compression, classification, guardrails)
+#   medium → balanced tasks (orchestration, retrieval, actions)
+#   large  → complex reasoning (analysis, root-cause)
+# ═══════════════════════════════════════════════════════
+
+model_list:
+
+  # ─── Small Tier (~70% of calls) ────────────────────
+  # Used for: context compression, entity resolution,
+  # query classification, guardrails validation
+  - model_name: contextforge/small
+    litellm_params:
+      model: anthropic/claude-haiku-4-5-20251001
+      api_key: os.environ/ANTHROPIC_API_KEY
+    model_info:
+      id: small-anthropic
+
+  - model_name: contextforge/small
+    litellm_params:
+      model: openai/gpt-4o-mini
+      api_key: os.environ/OPENAI_API_KEY
+    model_info:
+      id: small-openai
+
+  - model_name: contextforge/small
+    litellm_params:
+      model: ollama/phi4-mini
+      api_base: os.environ/OLLAMA_HOST
+    model_info:
+      id: small-ollama
+
+  # ─── Medium Tier (~25% of calls) ──────────────────
+  # Used for: orchestrator planning, retrieval synthesis,
+  # action recommendations
+  - model_name: contextforge/medium
+    litellm_params:
+      model: anthropic/claude-sonnet-4-20250514
+      api_key: os.environ/ANTHROPIC_API_KEY
+    model_info:
+      id: medium-anthropic
+
+  - model_name: contextforge/medium
+    litellm_params:
+      model: openai/gpt-4o
+      api_key: os.environ/OPENAI_API_KEY
+    model_info:
+      id: medium-openai
+
+  # ─── Large Tier (~5% of calls) ────────────────────
+  # Used for: complex analysis, root-cause reasoning
+  - model_name: contextforge/large
+    litellm_params:
+      model: anthropic/claude-opus-4-20250514
+      api_key: os.environ/ANTHROPIC_API_KEY
+    model_info:
+      id: large-anthropic
+
+  - model_name: contextforge/large
+    litellm_params:
+      model: openai/gpt-4o
+      api_key: os.environ/OPENAI_API_KEY
+    model_info:
+      id: large-openai
+
+  # ─── Embedding Model ──────────────────────────────
+  - model_name: contextforge/embed
+    litellm_params:
+      model: openai/text-embedding-3-small
+      api_key: os.environ/OPENAI_API_KEY
+    model_info:
+      id: embed-openai
+
+router_settings:
+  routing_strategy: simple-shuffle    # Load balance across same-name models
+  num_retries: 2
+  timeout: 120
+  allowed_fails: 2
+  cooldown_time: 60
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  database_url: null                  # No DB needed for LiteLLM proxy
