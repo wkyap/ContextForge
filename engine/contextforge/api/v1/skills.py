@@ -1,8 +1,14 @@
-"""Skills API — list and retrieve skills from the registry."""
+"""Skills API — list, retrieve, and search skills from the registry."""
 
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import APIRouter, HTTPException, Query, Request
+
+from contextforge.api.deps import QdrantDep, SettingsDep
+from contextforge.knowledge.embedding_service import EmbeddingService
+from contextforge.skills.search import search_skills
 
 router = APIRouter(prefix="/skills")
 
@@ -12,7 +18,7 @@ async def list_skills(
     request: Request,
     domain: str | None = Query(None),
     type: str | None = Query(None, alias="type"),
-) -> dict:
+) -> dict[str, Any]:
     registry = request.app.state.skill_registry
     if domain:
         skills = registry.list_by_domain(domain)
@@ -38,7 +44,7 @@ async def list_skills(
 
 
 @router.get("/{name}")
-async def get_skill(name: str, request: Request) -> dict:
+async def get_skill(name: str, request: Request) -> dict[str, Any]:
     registry = request.app.state.skill_registry
     skill = registry.get(name)
     if skill is None:
@@ -54,3 +60,21 @@ async def get_skill(name: str, request: Request) -> dict:
         "metadata": skill.metadata,
         "body": skill.body,
     }
+
+
+@router.get("/search")
+async def search_skills_endpoint(
+    qdrant: QdrantDep,
+    settings: SettingsDep,
+    q: str = Query(..., min_length=1, description="Semantic search query"),
+    domain: str | None = Query(None),
+    skill_type: str | None = Query(None, alias="type"),
+    limit: int = Query(5, ge=1, le=50),
+) -> dict[str, Any]:
+    """Semantic search for skills using vector similarity."""
+    embeddings = EmbeddingService(settings)
+    query_vector = await embeddings.embed(q)
+    results = await search_skills(
+        qdrant, query_vector, limit=limit, domain=domain, skill_type=skill_type,
+    )
+    return {"query": q, "count": len(results), "results": results}
