@@ -70,24 +70,52 @@ async def test_agent_chat_validation(client: httpx.AsyncClient) -> None:
     assert resp.status_code == 422  # Pydantic validation: min_length=1
 
 
-# ── Stub routers return 501 ──────────────────────────────────────────────────
+# ── Implemented routers return real responses (no longer stubs) ──────────────
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "path",
     [
         "/skills",
-        "/graph/entities",
-        "/timeseries/query",
-        "/governance/proposals",
-        "/onboarding/domain",
         "/pipelines",
-        "/admin/audit-log",
+        "/onboarding/plans",
+        "/governance/autonomy-levels",
     ],
 )
-async def test_stub_routers_return_501(client: httpx.AsyncClient, path: str) -> None:
+async def test_get_routers_implemented(client: httpx.AsyncClient, path: str) -> None:
+    """GET endpoints should return 200 with a JSON body — never 501."""
     async with client:
-        # Use GET for most, POST for onboarding
-        method = "post" if path == "/onboarding/domain" else "get"
-        resp = await getattr(client, method)(path)
-    assert resp.status_code == 501
+        resp = await client.get(path)
+    assert resp.status_code != 501, f"{path} is still a stub"
+    assert resp.status_code == 200, f"{path} returned {resp.status_code}: {resp.text[:200]}"
+    body = resp.json()
+    assert isinstance(body, dict)
+
+
+@pytest.mark.asyncio
+async def test_pipelines_create_validation(client: httpx.AsyncClient) -> None:
+    """POST /pipelines without a body should fail validation (422), not 501."""
+    async with client:
+        resp = await client.post("/pipelines", json={})
+    assert resp.status_code != 501
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_onboarding_domain_validation(client: httpx.AsyncClient) -> None:
+    """POST /onboarding/domain without a body should fail validation (422), not 501."""
+    async with client:
+        resp = await client.post("/onboarding/domain", json={})
+    assert resp.status_code != 501
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_search_get_route_exists(client: httpx.AsyncClient) -> None:
+    """GET /search?q=... should not be a stub. May 500 if LLM gateway / embeddings
+    are not configured in the test env — that's an integration concern, not a
+    stub regression."""
+    async with client:
+        resp = await client.get("/search", params={"q": "test", "limit": 5})
+    assert resp.status_code != 501
+    assert resp.status_code != 404
