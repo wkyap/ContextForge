@@ -113,6 +113,30 @@ async def test_onboarding_domain_validation(client: httpx.AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_agent_sessions_endpoint(client: httpx.AsyncClient) -> None:
+    """GET /agent/sessions should return paginated thread list from LangGraph checkpoints."""
+    async with client:
+        resp = await client.get("/agent/sessions", params={"limit": 5})
+    assert resp.status_code == 200, resp.text[:200]
+    body = resp.json()
+    assert "total" in body
+    assert "sessions" in body
+    assert isinstance(body["sessions"], list)
+    assert body["limit"] == 5
+
+
+@pytest.mark.asyncio
+async def test_agent_template_run_404(client: httpx.AsyncClient) -> None:
+    """POST /agent/templates/{missing}/run should return 404, not 501."""
+    async with client:
+        resp = await client.post(
+            "/agent/templates/__definitely_not_a_real_template__/run",
+            json={"variables": {}},
+        )
+    assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
 async def test_search_get_route_exists(client: httpx.AsyncClient) -> None:
     """GET /search?q=... should not be a stub. May 500 if LLM gateway / embeddings
     are not configured in the test env — that's an integration concern, not a
