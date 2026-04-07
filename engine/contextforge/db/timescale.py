@@ -77,7 +77,8 @@ class TimescaleClient:
     ) -> None:
         await self.execute(
             """
-            INSERT INTO entity_telemetry (time, entity_id, channel_id, parameter, value, unit, quality)
+            INSERT INTO entity_telemetry
+                (time, entity_id, channel_id, parameter, value, unit, quality)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT (time, entity_id, parameter) DO UPDATE
                 SET value = EXCLUDED.value, quality = EXCLUDED.quality
@@ -90,7 +91,8 @@ class TimescaleClient:
     ) -> None:
         await self.pool.executemany(
             """
-            INSERT INTO entity_telemetry (time, entity_id, channel_id, parameter, value, unit, quality)
+            INSERT INTO entity_telemetry
+                (time, entity_id, channel_id, parameter, value, unit, quality)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT (time, entity_id, parameter) DO UPDATE
                 SET value = EXCLUDED.value, quality = EXCLUDED.quality
@@ -157,7 +159,7 @@ class TimescaleClient:
                 entity_id, parameter, start, end,
             )
         return await self.fetch(
-            f"""
+            """
             SELECT time_bucket($5::interval, time) AS bucket,
                    AVG(value) AS avg_value,
                    MIN(value) AS min_value,
@@ -183,7 +185,7 @@ class TimescaleClient:
     ) -> list[asyncpg.Record]:
         """Compute trend with moving average and rate of change."""
         return await self.fetch(
-            f"""
+            """
             WITH bucketed AS (
                 SELECT time_bucket($5::interval, time) AS bucket,
                        AVG(value) AS avg_value
@@ -194,7 +196,9 @@ class TimescaleClient:
             )
             SELECT bucket,
                    avg_value,
-                   AVG(avg_value) OVER (ORDER BY bucket ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS moving_avg_3,
+                   AVG(avg_value) OVER (
+                       ORDER BY bucket ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+                   ) AS moving_avg_3,
                    avg_value - LAG(avg_value) OVER (ORDER BY bucket) AS delta,
                    CASE
                      WHEN LAG(avg_value) OVER (ORDER BY bucket) > 0
