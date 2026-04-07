@@ -1,14 +1,29 @@
-"""Sandbox provider — Docker-based sandbox management for Tool Forge.
+"""Sandbox provider — sandboxed execution for Tool Forge.
 
-Provides isolated execution environments for AI-generated tool code.
-Uses E2B/Daytona-style Docker containers with no host access.
+The default backend is a local ``asyncio.subprocess`` runner that:
+
+* writes the code to a per-sandbox temp directory,
+* spawns a fresh Python interpreter with stdin/stdout/stderr piped,
+* enforces a wall-clock timeout (and kills the process on overrun),
+* captures stdout/stderr/return code into a ``SandboxResult``.
+
+This is *not* a hardened isolation boundary — it relies on the OS user
+the engine runs as. For production deployments wire this provider to a
+Docker/E2B/Daytona container by replacing :meth:`SandboxProvider.execute`.
+The local backend is enough for unit tests and developer flows.
 """
 
 from __future__ import annotations
 
+import asyncio
 import logging
+import shutil
+import sys
+import tempfile
+import time
 import uuid
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -55,6 +70,7 @@ class SandboxProvider:
         self._sandbox_url = sandbox_url
         self._default_config = default_config or SandboxConfig()
         self._active_sandboxes: dict[str, SandboxConfig] = {}
+        self._workdirs: dict[str, Path] = {}
 
     async def create_sandbox(
         self,
@@ -64,13 +80,17 @@ class SandboxProvider:
         sandbox_id = str(uuid.uuid4())
         cfg = config or self._default_config
         self._active_sandboxes[sandbox_id] = cfg
+        self._workdirs[sandbox_id] = Path(
+            tempfile.mkdtemp(prefix=f"cf-sandbox-{sandbox_id[:8]}-")
+        )
 
         logger.info(
-            "Created sandbox %s (image=%s, timeout=%ds, network=%s)",
+            "Created sandbox %s (image=%s, timeout=%ds, network=%s, workdir=%s)",
             sandbox_id,
             cfg.image,
             cfg.timeout_seconds,
             cfg.network_enabled,
+            self._workdirs[sandbox_id],
         )
         return sandbox_id
 
@@ -93,20 +113,72 @@ class SandboxProvider:
                 error=f"Sandbox {sandbox_id} not found",
             )
 
+        if language != "python":
+            return SandboxResult(
+                sandbox_id=sandbox_id,
+                success=False,
+                error=f"Local sandbox backend only supports python (got: {language})",
+            )
+
+        config = self._active_sandboxes[sandbox_id]
+        workdir = self._workdirs[sandbox_id]
+        script = workdir / f"snippet_{uuid.uuid4().hex[:8]}.py"
+        script.write_text(code, encoding="utf-8")
+
         logger.info(
-            "Executing %s code in sandbox %s (%d chars)",
+            "Executing %s code in sandbox %s (%d chars, timeout=%ds)",
             language,
             sandbox_id,
             len(code),
+            config.timeout_seconds,
         )
 
-        # TODO: Replace with actual Docker/E2B API call
-        # For now, return a placeholder indicating the sandbox is ready
+        start = time.monotonic()
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                sys.executable,
+                "-I",  # isolated mode: ignore PYTHON* env, no user site-packages
+                str(script),
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                cwd=str(workdir),
+            )
+        except OSError as exc:
+            return SandboxResult(
+                sandbox_id=sandbox_id,
+                success=False,
+                error=f"Failed to spawn interpreter: {exc}",
+                duration_ms=(time.monotonic() - start) * 1000,
+            )
+
+        try:
+            stdout_bytes, stderr_bytes = await asyncio.wait_for(
+                proc.communicate(), timeout=config.timeout_seconds
+            )
+        except TimeoutError:
+            proc.kill()
+            await proc.wait()
+            duration_ms = (time.monotonic() - start) * 1000
+            return SandboxResult(
+                sandbox_id=sandbox_id,
+                success=False,
+                error=f"Timed out after {config.timeout_seconds}s",
+                duration_ms=duration_ms,
+            )
+
+        duration_ms = (time.monotonic() - start) * 1000
+        stdout = stdout_bytes.decode("utf-8", errors="replace")
+        stderr = stderr_bytes.decode("utf-8", errors="replace")
+        success = proc.returncode == 0
+
         return SandboxResult(
             sandbox_id=sandbox_id,
-            success=True,
-            stdout="[Sandbox execution placeholder — wire to Docker/E2B API]",
-            duration_ms=0.0,
+            success=success,
+            stdout=stdout,
+            stderr=stderr,
+            return_value=proc.returncode,
+            duration_ms=duration_ms,
+            error=None if success else f"Process exited with code {proc.returncode}",
         )
 
     async def install_packages(
@@ -146,6 +218,9 @@ class SandboxProvider:
         """Destroy a sandbox and clean up resources."""
         if sandbox_id in self._active_sandboxes:
             del self._active_sandboxes[sandbox_id]
+            workdir = self._workdirs.pop(sandbox_id, None)
+            if workdir and workdir.exists():
+                shutil.rmtree(workdir, ignore_errors=True)
             logger.info("Destroyed sandbox %s", sandbox_id)
 
     async def cleanup_all(self) -> None:
