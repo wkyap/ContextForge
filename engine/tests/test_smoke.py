@@ -80,6 +80,8 @@ async def test_agent_chat_validation(client: httpx.AsyncClient) -> None:
         "/pipelines",
         "/onboarding/plans",
         "/governance/autonomy-levels",
+        "/admin/audit-log",
+        "/admin/config",
     ],
 )
 async def test_get_routers_implemented(client: httpx.AsyncClient, path: str) -> None:
