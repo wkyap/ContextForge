@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import uuid
+from collections.abc import AsyncIterator
 from typing import Any
 
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -311,56 +312,105 @@ async def run_agent_chat(
     Returns ``(response_text, thread_id)``.
     """
     thread_id = thread_id or str(uuid.uuid4())
-
     result = await agent.ainvoke(
-        {
-            "messages": [{"role": "user", "content": message}],
-            "query": message,
-            "domain": domain,
-            "user_id": user_id,
-            "thread_id": thread_id,
-            "resolved_entities": [],
-            "context": {},
-            "loaded_skills": [],
-            "budget_limit": 5.0,
-            "total_tokens_used": 0,
-            "total_cost_usd": 0.0,
-            "iteration_count": 0,
-            "tools_called": [],
-            "errors": [],
-            "retry_count": 0,
-            "fallback_triggered": False,
-            "guardrails_results": [],
-            "orchestrator_plan": None,
-            "retrieval_result": None,
-            "analysis_result": None,
-            "action_result": None,
-        },
+        _initial_state(message, thread_id, domain, user_id),
         config={"configurable": {"thread_id": thread_id}},
     )
+    return _format_response(result), thread_id
 
-    # Extract response from the structured outputs
+
+def _initial_state(message: str, thread_id: str, domain: str, user_id: str) -> dict:
+    return {
+        "messages": [{"role": "user", "content": message}],
+        "query": message,
+        "domain": domain,
+        "user_id": user_id,
+        "thread_id": thread_id,
+        "resolved_entities": [],
+        "context": {},
+        "loaded_skills": [],
+        "budget_limit": 5.0,
+        "total_tokens_used": 0,
+        "total_cost_usd": 0.0,
+        "iteration_count": 0,
+        "tools_called": [],
+        "errors": [],
+        "retry_count": 0,
+        "fallback_triggered": False,
+        "guardrails_results": [],
+        "orchestrator_plan": None,
+        "retrieval_result": None,
+        "analysis_result": None,
+        "action_result": None,
+    }
+
+
+def _format_response(result: dict[str, Any]) -> str:
+    """Render a final agent state into the user-facing response string."""
     action = result.get("action_result")
     analysis = result.get("analysis_result")
     retrieval = result.get("retrieval_result")
 
     if action:
-        response = (
+        return (
             f"{action.get('recommendation', '')}\n\n"
             f"Urgency: {action.get('urgency', 'unknown')}\n"
             f"Evidence: {action.get('evidence_summary', '')}"
         )
-    elif analysis:
+    if analysis:
         findings = "\n".join(f"- {f}" for f in analysis.get("findings", []))
         response = f"Findings:\n{findings}"
         if analysis.get("root_cause_hypothesis"):
             response += f"\n\nRoot cause: {analysis['root_cause_hypothesis']}"
-    elif retrieval:
+        return response
+    if retrieval:
         entities = retrieval.get("entities_found", [])
         response = f"Found {len(entities)} relevant entities."
         if retrieval.get("sources"):
             response += f"\nSources: {', '.join(retrieval['sources'])}"
-    else:
-        response = "Analysis complete. No specific action required."
+        return response
+    return "Analysis complete. No specific action required."
 
-    return response, thread_id
+
+async def run_agent_chat_streaming(
+    agent: CompiledStateGraph,
+    message: str,
+    *,
+    thread_id: str | None = None,
+    domain: str = "industrial",
+    user_id: str = "anonymous",
+) -> AsyncIterator[dict[str, Any]]:
+    """Stream per-node state updates as the agent graph executes.
+
+    Yields dicts with keys ``type`` (one of ``"node"``, ``"done"``, ``"error"``),
+    ``thread_id``, and node-specific payload. The final ``done`` event carries
+    the formatted ``response`` string.
+    """
+    thread_id = thread_id or str(uuid.uuid4())
+    state = _initial_state(message, thread_id, domain, user_id)
+    config: Any = {"configurable": {"thread_id": thread_id}}
+    final_state: dict[str, Any] = {}
+
+    try:
+        async for event in agent.astream(state, config=config, stream_mode="updates"):
+            # `event` is {node_name: state_delta}
+            for node_name, delta in event.items():
+                if not isinstance(delta, dict):
+                    continue
+                final_state.update(delta)
+                yield {
+                    "type": "node",
+                    "thread_id": thread_id,
+                    "node": node_name,
+                    "keys": sorted(delta.keys()),
+                }
+    except Exception as exc:
+        logger.exception("run_agent_chat_streaming failed")
+        yield {"type": "error", "thread_id": thread_id, "error": str(exc)}
+        return
+
+    yield {
+        "type": "done",
+        "thread_id": thread_id,
+        "response": _format_response(final_state),
+    }

@@ -8,7 +8,7 @@ import uuid
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from contextforge.agents.graph import run_agent_chat
+from contextforge.agents.graph import run_agent_chat_streaming
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +19,11 @@ router = APIRouter()
 async def agent_chat_ws(websocket: WebSocket) -> None:
     """WebSocket endpoint for streaming agent chat.
 
-    Client sends JSON: {"message": "...", "thread_id": "..." (optional)}
-    Server streams JSON: {"type": "token|done|error", "content": "...", "thread_id": "..."}
+    Client sends JSON: {"message": "...", "thread_id": "..." (optional), "domain": "..."}
+    Server streams JSON events:
+      {"type": "node",  "node": "...", "keys": [...], "thread_id": "..."}
+      {"type": "done",  "content": "...",            "thread_id": "..."}
+      {"type": "error", "content": "...",            "thread_id": "..."}
     """
     await websocket.accept()
     logger.info("WebSocket connected")
@@ -40,19 +43,32 @@ async def agent_chat_ws(websocket: WebSocket) -> None:
                 continue
 
             thread_id = data.get("thread_id") or str(uuid.uuid4())
+            domain = data.get("domain", "industrial")
             agent = websocket.app.state.agent
 
             try:
-                # For now, non-streaming (full response). Streaming will be added
-                # when LangGraph's astream is wired up with token callbacks.
-                response_text, thread_id = await run_agent_chat(
-                    agent, message, thread_id=thread_id
-                )
-                await websocket.send_json({
-                    "type": "done",
-                    "content": response_text,
-                    "thread_id": thread_id,
-                })
+                async for event in run_agent_chat_streaming(
+                    agent, message, thread_id=thread_id, domain=domain
+                ):
+                    if event["type"] == "node":
+                        await websocket.send_json({
+                            "type": "node",
+                            "node": event["node"],
+                            "keys": event["keys"],
+                            "thread_id": event["thread_id"],
+                        })
+                    elif event["type"] == "done":
+                        await websocket.send_json({
+                            "type": "done",
+                            "content": event["response"],
+                            "thread_id": event["thread_id"],
+                        })
+                    elif event["type"] == "error":
+                        await websocket.send_json({
+                            "type": "error",
+                            "content": event["error"],
+                            "thread_id": event["thread_id"],
+                        })
             except Exception as exc:
                 logger.exception("Agent error in WebSocket")
                 await websocket.send_json({
