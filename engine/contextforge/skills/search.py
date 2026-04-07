@@ -60,9 +60,14 @@ async def search_skills(
     skill_type: str | None = None,
 ) -> list[dict[str, Any]]:
     """Search for relevant skills by embedding similarity."""
-    from qdrant_client.models import FieldCondition, Filter, MatchValue
+    from qdrant_client.models import (
+        Condition,
+        FieldCondition,
+        Filter,
+        MatchValue,
+    )
 
-    conditions = []
+    conditions: list[Condition] = []
     if domain:
         conditions.append(FieldCondition(key="domain", match=MatchValue(value=domain)))
     if skill_type:
@@ -77,6 +82,6 @@ async def search_skills(
         query_filter=filter_,
     )
     return [
-        {**point.payload, "score": point.score}
+        {**(point.payload or {}), "score": point.score}
         for point in results.points
     ]

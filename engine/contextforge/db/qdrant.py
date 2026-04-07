@@ -107,7 +107,12 @@ class QdrantClient:
         return result.points
 
     async def delete(self, collection: str, ids: list[str | int]) -> None:
-        await self.client.delete(collection_name=collection, points_selector=ids)
+        from qdrant_client.http.models import PointIdsList
+
+        await self.client.delete(
+            collection_name=collection,
+            points_selector=PointIdsList(points=list(ids)),
+        )
 
     # ── Health ────────────────────────────────────────────────────────────────
 

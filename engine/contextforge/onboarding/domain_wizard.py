@@ -72,6 +72,7 @@ class DomainOnboardingWizard:
         )
 
         raw = response.choices[0].message.content or "{}"
+        plan: dict[str, Any]
         try:
             plan = json.loads(raw)
         except json.JSONDecodeError:

@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from functools import lru_cache
-from typing import Annotated
+from typing import Annotated, cast
 
 from fastapi import Depends, Request
 
@@ -22,23 +21,23 @@ SettingsDep = Annotated[Settings, Depends(get_settings)]
 # ── DB clients (stored on app.state during lifespan) ─────────────────────────
 
 def _get_postgres(request: Request) -> PostgresClient:
-    return request.app.state.postgres
+    return cast(PostgresClient, request.app.state.postgres)
 
 
 def _get_timescale(request: Request) -> TimescaleClient:
-    return request.app.state.timescale
+    return cast(TimescaleClient, request.app.state.timescale)
 
 
 def _get_neo4j(request: Request) -> Neo4jClient:
-    return request.app.state.neo4j
+    return cast(Neo4jClient, request.app.state.neo4j)
 
 
 def _get_qdrant(request: Request) -> QdrantClient:
-    return request.app.state.qdrant
+    return cast(QdrantClient, request.app.state.qdrant)
 
 
 def _get_redis(request: Request) -> RedisClient:
-    return request.app.state.redis
+    return cast(RedisClient, request.app.state.redis)
 
 
 PostgresDep = Annotated[PostgresClient, Depends(_get_postgres)]

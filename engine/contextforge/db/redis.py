@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
+from typing import Any, cast
 
 import redis.asyncio as aioredis
 
@@ -26,8 +26,11 @@ class RedisClient:
     async def connect(self) -> None:
         if self._client is not None:
             return
-        self._client = aioredis.from_url(
-            self._url, decode_responses=True, max_connections=20
+        self._client = cast(
+            "aioredis.Redis",
+            aioredis.from_url(  # type: ignore[no-untyped-call]
+                self._url, decode_responses=True, max_connections=20
+            ),
         )
         await self._client.ping()
         logger.info("Redis connected (%s)", self._url.split("@")[-1])
@@ -50,7 +53,8 @@ class RedisClient:
         return f"{PREFIX}:{key}"
 
     async def get(self, key: str) -> str | None:
-        return await self.client.get(self._key(key))
+        value: str | None = await self.client.get(self._key(key))
+        return value
 
     async def get_json(self, key: str) -> Any | None:
         raw = await self.get(key)
@@ -73,13 +77,15 @@ class RedisClient:
 
     async def publish(self, channel: str, message: Any) -> int:
         payload = json.dumps(message, default=str) if not isinstance(message, str) else message
-        return await self.client.publish(self._key(channel), payload)
+        n: int = await self.client.publish(self._key(channel), payload)
+        return n
 
     # ── Health ────────────────────────────────────────────────────────────────
 
     async def health_check(self) -> bool:
         try:
-            return await self.client.ping()
+            ok: bool = await self.client.ping()
+            return ok
         except Exception:
             logger.exception("Redis health check failed")
             return False

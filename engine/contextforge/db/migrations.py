@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Awaitable, Callable
 from pathlib import Path
+from typing import Any
 
 from contextforge.db.neo4j import Neo4jClient
 from contextforge.db.postgres import PostgresClient
@@ -19,7 +21,11 @@ _TS_DIR = _MIGRATIONS_ROOT / "timescale"
 _NEO4J_DIR = _MIGRATIONS_ROOT / "neo4j"
 
 
-async def _run_sql_migrations(pool_execute, migrations_dir: Path, label: str) -> None:
+async def _run_sql_migrations(
+    pool_execute: Callable[[str], Awaitable[Any]],
+    migrations_dir: Path,
+    label: str,
+) -> None:
     """Execute .sql files in sorted order.
 
     Each file is split on ``-- STATEMENT`` markers or semicolons so that

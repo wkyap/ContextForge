@@ -61,12 +61,14 @@ class PostgresClient:
         # Support both execute(q, a, b) and execute(q, [a, b])
         if len(args) == 1 and isinstance(args[0], (list, tuple)):
             args = tuple(args[0])
-        return await self.pool.execute(query, *args)
+        result: str = await self.pool.execute(query, *args)
+        return result
 
     async def fetch(self, query: str, *args: Any) -> list[asyncpg.Record]:
         if len(args) == 1 and isinstance(args[0], (list, tuple)):
             args = tuple(args[0])
-        return await self.pool.fetch(query, *args)
+        rows: list[asyncpg.Record] = await self.pool.fetch(query, *args)
+        return rows
 
     async def fetch_one(self, query: str, *args: Any) -> asyncpg.Record | None:
         """Alias for fetchrow — used by CareerForge routes."""
@@ -89,7 +91,7 @@ class PostgresClient:
     async def health_check(self) -> bool:
         try:
             val = await self.fetchval("SELECT 1")
-            return val == 1
+            return bool(val == 1)
         except Exception:
             logger.exception("PostgreSQL health check failed")
             return False

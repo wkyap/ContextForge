@@ -69,9 +69,11 @@ class Neo4jClient:
 
             async def _tx(tx: Any) -> list[dict[str, Any]]:
                 result = await tx.run(query, parameters or {})
-                return await result.data()
+                data: list[dict[str, Any]] = await result.data()
+                return data
 
-            return await session.execute_write(_tx)
+            rows: list[dict[str, Any]] = await session.execute_write(_tx)
+            return rows
 
     # ── Health ────────────────────────────────────────────────────────────────
 

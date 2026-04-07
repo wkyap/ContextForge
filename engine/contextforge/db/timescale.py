@@ -49,10 +49,12 @@ class TimescaleClient:
     # ── Query helpers ─────────────────────────────────────────────────────────
 
     async def execute(self, query: str, *args: Any) -> str:
-        return await self.pool.execute(query, *args)
+        result: str = await self.pool.execute(query, *args)
+        return result
 
     async def fetch(self, query: str, *args: Any) -> list[asyncpg.Record]:
-        return await self.pool.fetch(query, *args)
+        rows: list[asyncpg.Record] = await self.pool.fetch(query, *args)
+        return rows
 
     async def fetchrow(self, query: str, *args: Any) -> asyncpg.Record | None:
         return await self.pool.fetchrow(query, *args)
@@ -226,7 +228,7 @@ class TimescaleClient:
     async def health_check(self) -> bool:
         try:
             val = await self.fetchval("SELECT 1")
-            return val == 1
+            return bool(val == 1)
         except Exception:
             logger.exception("TimescaleDB health check failed")
             return False

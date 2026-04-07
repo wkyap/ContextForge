@@ -25,7 +25,8 @@ class EmbeddingService:
     async def embed(self, text: str) -> list[float]:
         """Embed a single text string."""
         response = await litellm.aembedding(model=self._model, input=[text])
-        return response.data[0]["embedding"]
+        embedding: list[float] = response.data[0]["embedding"]
+        return embedding
 
     async def embed_batch(self, texts: list[str]) -> list[list[float]]:
         """Embed multiple texts in a single call."""
