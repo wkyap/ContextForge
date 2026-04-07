@@ -21,6 +21,7 @@ from contextforge.agents.orchestrator import orchestrator_node
 from contextforge.agents.retrieval_agent import retrieval_node
 from contextforge.agents.state import AgentState
 from contextforge.config import Settings
+from contextforge.guardrails.layer import GuardrailsLayer
 
 logger = logging.getLogger(__name__)
 
@@ -45,17 +46,80 @@ async def budget_check(state: AgentState) -> dict:
 # ── Context check node ────────────────────────────────────────────────────────
 
 async def context_check(state: AgentState) -> dict:
-    """Check context window budget and trigger compaction if needed."""
-    # Placeholder — full implementation in context/cache_manager.py
-    return {}
+    """Compact context if it grows past the soft limit.
+
+    The context window is approximated by summing the lengths of every value
+    in ``state['context']`` plus the resolved-entity payload. When the total
+    exceeds 24 000 characters (~6k tokens) we drop the oldest non-essential
+    keys, keeping only ``query``, ``messages``, and ``resolved_entities``-
+    derived facts. The trimmed map is returned via the state delta.
+    """
+    ctx = state.get("context") or {}
+    if not isinstance(ctx, dict) or not ctx:
+        return {}
+
+    soft_limit = 24_000
+    total = sum(len(str(v)) for v in ctx.values())
+    if total <= soft_limit:
+        return {}
+
+    # Preserve a small allowlist of essential keys; drop the rest oldest-first.
+    essential = {"query", "messages", "facts", "resolved_entities"}
+    trimmed: dict = {k: v for k, v in ctx.items() if k in essential}
+    logger.info(
+        "context_check: compacted context %d → %d chars (dropped %d keys)",
+        total,
+        sum(len(str(v)) for v in trimmed.values()),
+        len(ctx) - len(trimmed),
+    )
+    return {"context": trimmed}
 
 
 # ── Guardrails check node ────────────────────────────────────────────────────
 
 async def guardrails_check(state: AgentState) -> dict:
-    """Validate agent output against guardrails."""
-    # Placeholder — wired to guardrails/layer.py at runtime
-    return {"guardrails_results": [{"status": "pass"}]}
+    """Validate agent output against the production guardrails layer."""
+    # Pick the latest specialist output (action > analysis > retrieval).
+    output_text = ""
+    for key in ("action_result", "analysis_result", "retrieval_result"):
+        result = state.get(key)
+        if isinstance(result, dict):
+            for field_name in ("output", "summary", "answer", "text"):
+                value = result.get(field_name)
+                if isinstance(value, str) and value:
+                    output_text = value
+                    break
+            if output_text:
+                break
+
+    if not output_text:
+        return {"guardrails_results": [{"status": "skipped", "reason": "no output yet"}]}
+
+    layer = GuardrailsLayer(domain=state.get("domain", "industrial"))
+    context_text = ""
+    ctx = state.get("context")
+    if isinstance(ctx, dict):
+        context_text = " ".join(str(v) for v in ctx.values())[:8000]
+
+    try:
+        result = await layer.validate_output(
+            {"output": output_text, "context": context_text}
+        )
+    except Exception as exc:  # noqa: BLE001 — never let guardrails crash the graph
+        logger.exception("guardrails_check failed: %s", exc)
+        return {"guardrails_results": [{"status": "error", "error": str(exc)}]}
+
+    return {
+        "guardrails_results": [
+            {
+                "status": "pass" if result["passed"] else "fail",
+                "pii_found": result["pii_found"],
+                "toxicity_found": result["toxicity_found"],
+                "hallucination_found": result["hallucination_found"],
+                "domain_issues": result["domain_issues"],
+            }
+        ]
+    }
 
 
 # ── Human review gate ─────────────────────────────────────────────────────────
