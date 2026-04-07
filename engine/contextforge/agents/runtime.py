@@ -10,14 +10,14 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import Any, Sequence, TypedDict
+from collections.abc import Sequence
+from typing import Any, TypedDict
 
+import litellm
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
-
-import litellm
 
 from contextforge.config import Settings
 

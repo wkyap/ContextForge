@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import io
 import logging
 from typing import Any
 
@@ -170,7 +169,7 @@ class DocumentTools:
     async def _extract_html(self, file_path: str) -> str:
         from bs4 import BeautifulSoup  # lazy import
 
-        with open(file_path, "r", encoding="utf-8") as fh:
+        with open(file_path, encoding="utf-8") as fh:
             soup = BeautifulSoup(fh.read(), "html.parser")
         # Remove script and style elements
         for tag in soup(["script", "style"]):

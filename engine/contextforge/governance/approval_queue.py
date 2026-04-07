@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from contextforge.db.postgres import PostgresClient
@@ -85,7 +85,7 @@ class ApprovalQueue:
             WHERE id = $1 AND status = 'pending'
             """,
             proposal_id, status, approver_id, reason,
-            datetime.now(timezone.utc),
+            datetime.now(UTC),
         )
 
         # Log to audit trail

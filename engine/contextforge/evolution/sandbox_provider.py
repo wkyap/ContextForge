@@ -93,7 +93,6 @@ class SandboxProvider:
                 error=f"Sandbox {sandbox_id} not found",
             )
 
-        config = self._active_sandboxes[sandbox_id]
         logger.info(
             "Executing %s code in sandbox %s (%d chars)",
             language,

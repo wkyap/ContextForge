@@ -5,10 +5,10 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, Field
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
 
-from contextforge.api.deps import PostgresDep, Neo4jDep
+from contextforge.api.deps import Neo4jDep, PostgresDep
 
 router = APIRouter(prefix="/trainees")
 

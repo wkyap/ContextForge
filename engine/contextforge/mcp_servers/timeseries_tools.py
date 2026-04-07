@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from contextforge.db.timescale import TimescaleClient
@@ -69,7 +69,7 @@ class TimeseriesTools:
             rec = await self._ts.query_latest(args["entity_id"], args["parameter"])
             return dict(rec) if rec else None
         elif tool_name == "get_trend":
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             start = now - timedelta(hours=args.get("hours_back", 24))
             records = await self._ts.query_aggregated(
                 args["entity_id"], args["parameter"],

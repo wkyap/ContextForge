@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from contextforge.db.redis import RedisClient
@@ -152,7 +152,7 @@ class StreamIngester:
         if time_str:
             ts = datetime.fromisoformat(str(time_str))
         else:
-            ts = datetime.now(timezone.utc)
+            ts = datetime.now(UTC)
 
         await self._timescale.insert_telemetry(
             time=ts,

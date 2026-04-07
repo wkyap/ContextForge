@@ -3,15 +3,14 @@
 from __future__ import annotations
 
 import logging
-from enum import Enum
-from typing import Any
+from enum import StrEnum
 
 import litellm
 
 logger = logging.getLogger(__name__)
 
 
-class RetrievalStrategy(str, Enum):
+class RetrievalStrategy(StrEnum):
     """Available retrieval strategies."""
 
     LOCAL = "local"           # Entity-centric: KG neighbours + timeseries

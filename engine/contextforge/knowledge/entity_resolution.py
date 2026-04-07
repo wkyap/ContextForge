@@ -6,8 +6,8 @@ import logging
 from typing import Any
 
 from contextforge.db.neo4j import Neo4jClient
-from contextforge.knowledge.embedding_service import EmbeddingService
 from contextforge.db.qdrant import QdrantClient
+from contextforge.knowledge.embedding_service import EmbeddingService
 
 logger = logging.getLogger(__name__)
 

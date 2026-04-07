@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import logging
-from enum import Enum
+from enum import StrEnum
 
 logger = logging.getLogger(__name__)
 
 
-class ModelTier(str, Enum):
+class ModelTier(StrEnum):
     SMALL = "small"
     MEDIUM = "medium"
     LARGE = "large"

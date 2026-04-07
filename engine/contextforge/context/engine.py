@@ -12,7 +12,7 @@ Stages:
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from contextforge.context.cache import ContextCache
@@ -155,7 +155,7 @@ class ContextEngine:
                 return []
 
             # Get last 24h of the first parameter
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             start = now - timedelta(hours=24)
             param_name = params[0]["parameter"]
             records = await self._timescale.query_aggregated(

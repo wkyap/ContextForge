@@ -15,11 +15,11 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
-from contextforge.agents.state import AgentState
+from contextforge.agents.action_agent import action_node
+from contextforge.agents.analysis_agent import analysis_node
 from contextforge.agents.orchestrator import orchestrator_node
 from contextforge.agents.retrieval_agent import retrieval_node
-from contextforge.agents.analysis_agent import analysis_node
-from contextforge.agents.action_agent import action_node
+from contextforge.agents.state import AgentState
 from contextforge.config import Settings
 
 logger = logging.getLogger(__name__)
@@ -69,7 +69,6 @@ async def human_review_gate(state: AgentState) -> dict:
 
 async def error_recovery(state: AgentState) -> dict:
     """Handle errors and decide: retry, fallback, or escalate."""
-    errors = state.get("errors", [])
     retry_count = state.get("retry_count", 0)
 
     if retry_count >= 3:

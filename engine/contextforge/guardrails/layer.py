@@ -6,8 +6,8 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any
 
-from .pii_detector import detect_pii
 from .hallucination_checker import check_hallucination
+from .pii_detector import detect_pii
 from .provenance import ProvenanceRecord
 from .toxicity import check_toxicity
 

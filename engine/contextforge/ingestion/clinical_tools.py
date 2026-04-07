@@ -135,7 +135,7 @@ def compute_news2(
 
 
 @dataclass
-class qSOFAResult:
+class qSOFAResult:  # noqa: N801 — qSOFA is the canonical clinical acronym
     score: int
     positive: bool
     components: dict[str, bool]

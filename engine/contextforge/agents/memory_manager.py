@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from contextforge.db.redis import RedisClient
@@ -29,7 +28,7 @@ class MemoryManager:
         existing = await self._redis.get_json(mem_key) or {}
         existing[key] = {
             "value": value,
-            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(UTC).isoformat(),
         }
         await self._redis.set_json(mem_key, existing)
         logger.debug("Memory stored: %s/%s/%s", user_id, namespace, key)

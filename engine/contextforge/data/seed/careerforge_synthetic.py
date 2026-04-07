@@ -16,7 +16,6 @@ import logging
 import random
 import uuid
 from datetime import date, timedelta
-from typing import Any
 
 from contextforge.db.postgres import PostgresClient
 

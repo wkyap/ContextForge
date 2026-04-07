@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import uuid
 
-from pydantic import BaseModel, Field
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
 
 from contextforge.api.deps import PostgresDep
 
@@ -109,7 +109,7 @@ async def update_placement(
         params.append(body.status)
         idx += 1
         if body.status == "verified":
-            updates.append(f"verified_at = now()")
+            updates.append("verified_at = now()")
     if body.verified_by:
         updates.append(f"verified_by = ${idx}")
         params.append(body.verified_by)

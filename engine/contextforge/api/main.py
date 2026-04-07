@@ -3,26 +3,15 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from pathlib import Path
-
 from contextforge.agents.graph import create_agent
-from contextforge.config import get_settings
-from contextforge.skills.registry import SkillRegistry
-from contextforge.db.migrations import run_all_migrations
-from contextforge.db.neo4j import Neo4jClient
-from contextforge.db.postgres import PostgresClient
-from contextforge.db.qdrant import QdrantClient
-from contextforge.db.redis import RedisClient
-from contextforge.db.timescale import TimescaleClient
-from contextforge.observability.langfuse_setup import init_langfuse, shutdown_langfuse
-
 from contextforge.api.v1 import (
     admin,
     agents,
@@ -42,6 +31,15 @@ from contextforge.api.v1 import (
     trainees,
     ws,
 )
+from contextforge.config import get_settings
+from contextforge.db.migrations import run_all_migrations
+from contextforge.db.neo4j import Neo4jClient
+from contextforge.db.postgres import PostgresClient
+from contextforge.db.qdrant import QdrantClient
+from contextforge.db.redis import RedisClient
+from contextforge.db.timescale import TimescaleClient
+from contextforge.observability.langfuse_setup import init_langfuse, shutdown_langfuse
+from contextforge.skills.registry import SkillRegistry
 
 logger = logging.getLogger(__name__)
 

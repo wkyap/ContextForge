@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from contextforge.db.postgres import PostgresClient
@@ -75,7 +75,7 @@ class AutonomyController:
                     last_rejection_at = $2
                 WHERE function_name = $1
                 """,
-                function_name, datetime.now(timezone.utc),
+                function_name, datetime.now(UTC),
             )
 
     async def check_promotion(self, function_name: str) -> bool:
@@ -106,7 +106,7 @@ class AutonomyController:
                 promoted_by = $3
             WHERE function_name = $1 AND autonomy_level < 4
             """,
-            function_name, datetime.now(timezone.utc), promoted_by,
+            function_name, datetime.now(UTC), promoted_by,
         )
         new_level = await self.get_level(function_name)
 

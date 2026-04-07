@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import random
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 
@@ -17,7 +17,7 @@ def _random_date(start_year: int = 1940, end_year: int = 2005) -> str:
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 _GIVEN_NAMES = ["James", "Mary", "Robert", "Patricia", "John", "Jennifer",
@@ -69,7 +69,7 @@ def generate_patient() -> dict[str, Any]:
 
 def generate_encounter(patient_id: str) -> dict[str, Any]:
     """Generate a synthetic FHIR Encounter resource."""
-    start = datetime.now(timezone.utc) - timedelta(hours=random.randint(1, 72))
+    start = datetime.now(UTC) - timedelta(hours=random.randint(1, 72))
     return {
         "resourceType": "Encounter",
         "id": str(uuid.uuid4()),
@@ -83,7 +83,7 @@ def generate_encounter(patient_id: str) -> dict[str, Any]:
 def generate_observations(patient_id: str, count: int = 10) -> list[dict[str, Any]]:
     """Generate synthetic vital-sign observations."""
     observations = []
-    base_time = datetime.now(timezone.utc) - timedelta(hours=count)
+    base_time = datetime.now(UTC) - timedelta(hours=count)
     for i in range(count):
         time = base_time + timedelta(hours=i)
         observations.extend([

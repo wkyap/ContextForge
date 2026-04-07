@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import io
 import logging
 import uuid
 from typing import Any
 
-from contextforge.db.postgres import PostgresClient
 from contextforge.db.neo4j import Neo4jClient
-from contextforge.guardrails.pdpa_sg import mask_nric_display, mask_phone, hash_nric
+from contextforge.db.postgres import PostgresClient
+from contextforge.guardrails.pdpa_sg import hash_nric, mask_phone
 from contextforge.ingestion.base_ingester import BaseIngester, IngestResult
 
 logger = logging.getLogger(__name__)
@@ -112,7 +111,7 @@ class ExcelIngester(BaseIngester):
                 code = str(row.get("Trainee Code") or row.get("trainee_code", ""))
                 name = str(row.get("Name") or row.get("name", ""))
                 if not code or not name:
-                    result.errors.append(f"Skipping row: missing code or name")
+                    result.errors.append("Skipping row: missing code or name")
                     continue
 
                 # PDPA: mask PII before storage

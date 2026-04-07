@@ -7,7 +7,7 @@ run, then writes a summary to Langfuse and optionally enforces budget caps.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 

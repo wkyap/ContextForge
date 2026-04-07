@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import uuid
 
-from pydantic import BaseModel, Field
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
 
 from contextforge.api.deps import PostgresDep
 
