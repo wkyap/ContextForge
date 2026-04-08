@@ -2,7 +2,7 @@
 
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,7 +20,15 @@ class Settings(BaseSettings):
     env: str = "development"
     debug: bool = True
     log_level: str = "INFO"
-    auth_disabled: bool = True
+    # Default: auth is OFF only in development; ON everywhere else (staging/prod).
+    # Override explicitly with CONTEXTFORGE_AUTH_DISABLED=true if you really need it.
+    auth_disabled: bool | None = None
+
+    @model_validator(mode="after")
+    def _default_auth_from_env(self) -> "Settings":
+        if self.auth_disabled is None:
+            object.__setattr__(self, "auth_disabled", self.env == "development")
+        return self
 
     # ─── PostgreSQL ──────────────────────────────────
     postgres_uri: str = "postgresql://contextforge:changeme_postgres@localhost:5432/contextforge"
@@ -73,6 +81,9 @@ class Settings(BaseSettings):
     max_cost_per_run_usd: float = 5.00
     max_iterations: int = 15
     max_tool_calls: int = 25
+
+    # ─── Guardrails ─────────────────────────────────
+    presidio_enabled: bool = False
 
     # ─── Keycloak ───────────────────────────────────
     keycloak_issuer_url: str = Field(

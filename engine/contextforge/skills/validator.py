@@ -6,7 +6,16 @@ from dataclasses import dataclass, field
 
 from contextforge.skills.loader import Skill
 
-VALID_TYPES = {"knowledge", "ingestion", "computation", "template", "guardrail", "channel"}
+VALID_TYPES = {
+    "knowledge",
+    "ingestion",
+    "computation",
+    "template",
+    "guardrail",
+    "channel",
+    "connector",
+    "tool",
+}
 
 # Required metadata keys per skill type (beyond the common fields).
 _TYPE_REQUIRED: dict[str, list[str]] = {
@@ -16,6 +25,8 @@ _TYPE_REQUIRED: dict[str, list[str]] = {
     "template": ["output_format", "sections"],
     "guardrail": ["check_type", "severity"],
     "channel": ["platform"],
+    "connector": ["source_kind", "auth", "config_schema"],
+    "tool": ["inputs", "outputs"],
 }
 
 

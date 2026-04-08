@@ -322,7 +322,7 @@ export default function GraphExplorer() {
                       <div className="text-xs text-gray-400">
                         {v._changed_by as string} &middot;{" "}
                         {formatDate(v._updated_at)}
-                        {v._change_reason && (
+                        {Boolean(v._change_reason) && (
                           <span className="ml-1 italic">
                             — {v._change_reason as string}
                           </span>

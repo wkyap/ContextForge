@@ -6,8 +6,11 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any
 
+from contextforge.config import get_settings
+
 from .hallucination_checker import check_hallucination
 from .pii_detector import detect_pii
+from .presidio_pii import detect_and_anonymize as presidio_detect
 from .provenance import ProvenanceRecord
 from .toxicity import check_toxicity
 
@@ -110,6 +113,21 @@ class GuardrailsLayer:
         if pii.found:
             result.passed = False
             logger.warning("Guardrail: PII detected (%d instances)", len(pii.detections))
+
+        # 1b. Presidio (NER-based PII) — opt-in via CONTEXTFORGE_PRESIDIO_ENABLED
+        if get_settings().presidio_enabled:
+            presidio = presidio_detect(output_text)
+            result.details["presidio"] = {
+                "found": presidio.found,
+                "count": len(presidio.detections),
+                "detections": presidio.detections,
+            }
+            if presidio.found:
+                result.pii_found = True
+                result.passed = False
+                logger.warning(
+                    "Guardrail: Presidio flagged %d entity(ies)", len(presidio.detections)
+                )
 
         # 2. Toxicity check ------------------------------------------------
         toxicity = await check_toxicity(output_text)

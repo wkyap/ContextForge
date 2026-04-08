@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -40,6 +41,7 @@ from contextforge.db.redis import RedisClient
 from contextforge.db.timescale import TimescaleClient
 from contextforge.observability.langfuse_setup import init_langfuse, shutdown_langfuse
 from contextforge.skills.registry import SkillRegistry
+from contextforge.skills.watcher import watch_skills
 
 logger = logging.getLogger(__name__)
 
@@ -79,11 +81,20 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Agent runtime
     agent, checkpointer_ctx = await create_agent(settings)
 
-    # Skill registry
-    skill_registry = SkillRegistry()
+    # Skill registry — lazy load + hot-reload watcher
     domains_dir = Path(__file__).resolve().parents[2] / "domains"
+    skill_registry = SkillRegistry(root=domains_dir if domains_dir.exists() else None)
+    # Eager-load once so the catalog is warm on first request; hot-reload picks up
+    # subsequent edits without an API restart.
     if domains_dir.exists():
         skill_registry.load_from_directory(domains_dir)
+        skill_watch_stop = asyncio.Event()
+        skill_watch_task = asyncio.create_task(
+            watch_skills(skill_registry, domains_dir, skill_watch_stop)
+        )
+    else:
+        skill_watch_stop = None
+        skill_watch_task = None
 
     # Store on app.state for dependency injection
     app.state.postgres = postgres
@@ -100,6 +111,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
 
     # Shutdown
+    if skill_watch_task is not None:
+        assert skill_watch_stop is not None
+        skill_watch_stop.set()
+        skill_watch_task.cancel()
+        try:
+            await skill_watch_task
+        except (asyncio.CancelledError, Exception):
+            pass
     await app.state.checkpointer_ctx.__aexit__(None, None, None)
     shutdown_langfuse()
     await redis.disconnect()
