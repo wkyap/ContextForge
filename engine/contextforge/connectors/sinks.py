@@ -7,13 +7,17 @@ constructed with.
 
 from __future__ import annotations
 
+import asyncio
 import logging
+import uuid
 from datetime import datetime, timezone
 from typing import Any
 
 from contextforge.connectors.base import Record, Sink
 from contextforge.db.neo4j import Neo4jClient
+from contextforge.db.qdrant import QdrantClient
 from contextforge.db.timescale import TimescaleClient
+from contextforge.knowledge.embedding_service import EmbeddingService
 
 logger = logging.getLogger(__name__)
 
@@ -145,29 +149,117 @@ class KGSink(Sink):
         return {"written": self.written, "skipped": self.skipped}
 
 
+class VectorSink(Sink):
+    """Embed text-shaped records and upsert into a Qdrant collection.
+
+    Convention for `Record.payload`:
+    - `text` (str)            — required source text to embed
+    - `doc_id` (str)          — optional stable id; defaults to uuid4
+    - everything else becomes Qdrant point payload (alongside `text`, `_source`)
+
+    Embedding goes through the project's `EmbeddingService` (LiteLLM gateway).
+    Records without `text` are skipped.
+    """
+
+    def __init__(
+        self,
+        qdrant: QdrantClient,
+        embedder: EmbeddingService,
+        collection: str = "document_chunks",
+    ) -> None:
+        self._qdrant = qdrant
+        self._embedder = embedder
+        self._collection = collection
+        self.written = 0
+        self.skipped = 0
+
+    async def write(self, record: Record) -> None:
+        from qdrant_client.models import PointStruct
+
+        payload = record.payload or {}
+        text = payload.get("text")
+        if not text or not isinstance(text, str):
+            self.skipped += 1
+            return
+        try:
+            vector = await self._embedder.embed(text)
+        except Exception:
+            self.skipped += 1
+            logger.exception("VectorSink: embedding failed for %s", record.source)
+            return
+
+        point_payload = {k: v for k, v in payload.items() if k != "text"}
+        point_payload["text"] = text
+        point_payload["_source"] = record.source
+        point_payload["_updated_at"] = record.timestamp
+
+        doc_id = str(payload.get("doc_id") or uuid.uuid4())
+        try:
+            await self._qdrant.upsert(
+                self._collection,
+                [PointStruct(id=doc_id, vector=vector, payload=point_payload)],
+            )
+            self.written += 1
+        except Exception:
+            self.skipped += 1
+            logger.exception("VectorSink: upsert failed for %s", record.source)
+
+    def stats(self) -> dict[str, Any]:
+        return {"written": self.written, "skipped": self.skipped}
+
+
+class FanOutSink(Sink):
+    """Write each record to multiple sinks concurrently.
+
+    Use when a record is meaningful to more than one store — e.g. an entity
+    record with telemetry should land in both Neo4j (KGSink) and TimescaleDB
+    (TimescaleSink). Failures in any one sink are isolated; other sinks still
+    receive the record.
+    """
+
+    def __init__(self, sinks: list[Sink]) -> None:
+        self._sinks = sinks
+
+    async def write(self, record: Record) -> None:
+        results = await asyncio.gather(
+            *(s.write(record) for s in self._sinks), return_exceptions=True
+        )
+        for sink, res in zip(self._sinks, results, strict=False):
+            if isinstance(res, Exception):
+                logger.warning("FanOutSink: %s raised %s", type(sink).__name__, res)
+
+    async def close(self) -> None:
+        for s in self._sinks:
+            try:
+                await s.close()
+            except Exception:
+                logger.exception("FanOutSink: close failed for %s", type(s).__name__)
+
+
 class CompositeSink(Sink):
     """Route each record to the most appropriate downstream sink.
 
     Routing rules (first match wins):
     1. payload has `entity_type` + `entity_id`     → KGSink
     2. payload has a numeric `value` (or `v`)      → TimescaleSink
-    3. fallback                                    → LoggingSink (no-op if not set)
-
-    The composite is the recommended default for the supervisor when both
-    Neo4j and TimescaleDB are available.
+    3. payload has a non-empty `text` string       → VectorSink
+    4. fallback                                    → LoggingSink (no-op if not set)
     """
 
     def __init__(
         self,
         kg: KGSink | None = None,
         timescale: TimescaleSink | None = None,
+        vector: VectorSink | None = None,
         fallback: Sink | None = None,
     ) -> None:
         self._kg = kg
         self._ts = timescale
+        self._vector = vector
         self._fallback = fallback
         self.routed_kg = 0
         self.routed_ts = 0
+        self.routed_vector = 0
         self.routed_fallback = 0
 
     async def write(self, record: Record) -> None:
@@ -188,6 +280,10 @@ class CompositeSink(Sink):
             self.routed_ts += 1
             await self._ts.write(record)
             return
+        if self._vector is not None and isinstance(payload.get("text"), str) and payload["text"]:
+            self.routed_vector += 1
+            await self._vector.write(record)
+            return
         if self._fallback is not None:
             self.routed_fallback += 1
             await self._fallback.write(record)
@@ -196,5 +292,6 @@ class CompositeSink(Sink):
         return {
             "kg": self.routed_kg,
             "timescale": self.routed_ts,
+            "vector": self.routed_vector,
             "fallback": self.routed_fallback,
         }

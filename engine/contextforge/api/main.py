@@ -35,7 +35,8 @@ from contextforge.api.v1 import (
 )
 from contextforge.connectors.base import LoggingSink
 from contextforge.connectors.runtime import ConnectorSupervisor
-from contextforge.connectors.sinks import CompositeSink, KGSink, TimescaleSink
+from contextforge.connectors.sinks import CompositeSink, KGSink, TimescaleSink, VectorSink
+from contextforge.knowledge.embedding_service import EmbeddingService
 from contextforge.config import get_settings
 from contextforge.db.migrations import run_all_migrations
 from contextforge.db.neo4j import Neo4jClient
@@ -112,9 +113,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     # Connector supervisor (Phase 2.1+2.3) — CompositeSink routes records to
     # KG (entity-shaped), Timescale (numeric telemetry), or Logging (fallback).
+    embedder = EmbeddingService(settings)
     composite_sink = CompositeSink(
         kg=KGSink(neo4j),
         timescale=TimescaleSink(timescale),
+        vector=VectorSink(qdrant, embedder),
         fallback=LoggingSink(),
     )
     connector_supervisor = ConnectorSupervisor(sink=composite_sink)
