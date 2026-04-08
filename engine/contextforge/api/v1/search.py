@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from fastapi import APIRouter, Query, Request
@@ -11,6 +12,8 @@ from contextforge.api.deps import Neo4jDep, QdrantDep, SettingsDep
 from contextforge.knowledge.embedding_service import EmbeddingService
 from contextforge.knowledge.temporal_graph import TemporalGraph
 from contextforge.skills.search import search_skills
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/search")
 
@@ -97,7 +100,7 @@ async def quick_search(
         for e in entities:
             results.append({"type": "entity", **e})
     except Exception:
-        pass
+        logger.warning("Entity fulltext search failed for q=%r", q, exc_info=True)
 
     # Document vector search
     try:
@@ -105,7 +108,7 @@ async def quick_search(
         for pt in docs:
             results.append({"type": "document", **pt.payload, "score": pt.score})
     except Exception:
-        pass
+        logger.warning("Document vector search failed for q=%r", q, exc_info=True)
 
     # Sort by score descending
     results.sort(key=lambda r: r.get("score", 0), reverse=True)
