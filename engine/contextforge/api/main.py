@@ -33,8 +33,9 @@ from contextforge.api.v1 import (
     trainees,
     ws,
 )
+from contextforge.connectors.base import LoggingSink
 from contextforge.connectors.runtime import ConnectorSupervisor
-from contextforge.connectors.sinks import TimescaleSink
+from contextforge.connectors.sinks import CompositeSink, KGSink, TimescaleSink
 from contextforge.config import get_settings
 from contextforge.db.migrations import run_all_migrations
 from contextforge.db.neo4j import Neo4jClient
@@ -109,9 +110,21 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.checkpointer_ctx = checkpointer_ctx
     app.state.skill_registry = skill_registry
 
-    # Connector supervisor (Phase 2.1) — TimescaleSink as default persistence
-    connector_supervisor = ConnectorSupervisor(sink=TimescaleSink(timescale))
+    # Connector supervisor (Phase 2.1+2.3) — CompositeSink routes records to
+    # KG (entity-shaped), Timescale (numeric telemetry), or Logging (fallback).
+    composite_sink = CompositeSink(
+        kg=KGSink(neo4j),
+        timescale=TimescaleSink(timescale),
+        fallback=LoggingSink(),
+    )
+    connector_supervisor = ConnectorSupervisor(sink=composite_sink)
     app.state.connector_supervisor = connector_supervisor
+
+    # Auto-start any connector SKILL.md entries flagged with autostart: true
+    try:
+        await connector_supervisor.autostart_from_registry(skill_registry)
+    except Exception:
+        logger.exception("Connector autostart sweep failed")
 
     logger.info("ContextForge engine started (env=%s)", settings.env)
 

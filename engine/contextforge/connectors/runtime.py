@@ -83,6 +83,36 @@ class ConnectorSupervisor:
         entry = self._running.get(name)
         return entry.connector if entry else None
 
+    async def autostart_from_registry(self, skill_registry: Any) -> int:
+        """Start every `connector` SKILL with metadata.autostart == true.
+
+        SKILL.md must declare `source_kind` (validator already requires this)
+        and may provide a `config` dict in metadata. Failures are logged but
+        do not crash startup.
+        """
+        started = 0
+        for skill in skill_registry.list_by_type("connector"):
+            meta = skill.metadata or {}
+            if not meta.get("autostart"):
+                continue
+            source_kind = meta.get("source_kind")
+            config = meta.get("config", {}) or {}
+            if not source_kind:
+                logger.warning(
+                    "Connector SKILL %s has autostart=true but no source_kind", skill.name
+                )
+                continue
+            try:
+                await self.start(skill.name, source_kind, config)
+                started += 1
+            except Exception:
+                logger.exception(
+                    "Failed to autostart connector %s (kind=%s)", skill.name, source_kind
+                )
+        if started:
+            logger.info("Autostarted %d connector(s) from skill registry", started)
+        return started
+
     async def shutdown(self) -> None:
         names = list(self._running.keys())
         for n in names:
