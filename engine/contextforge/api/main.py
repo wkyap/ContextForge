@@ -16,6 +16,7 @@ from contextforge.agents.graph import create_agent
 from contextforge.api.v1 import (
     admin,
     agents,
+    connectors,
     courses,
     employers,
     governance,
@@ -32,6 +33,7 @@ from contextforge.api.v1 import (
     trainees,
     ws,
 )
+from contextforge.connectors.runtime import ConnectorSupervisor
 from contextforge.config import get_settings
 from contextforge.db.migrations import run_all_migrations
 from contextforge.db.neo4j import Neo4jClient
@@ -106,11 +108,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.checkpointer_ctx = checkpointer_ctx
     app.state.skill_registry = skill_registry
 
+    # Connector supervisor (Phase 2.1)
+    connector_supervisor = ConnectorSupervisor()
+    app.state.connector_supervisor = connector_supervisor
+
     logger.info("ContextForge engine started (env=%s)", settings.env)
 
     yield
 
     # Shutdown
+    try:
+        await app.state.connector_supervisor.shutdown()
+    except Exception:
+        logger.exception("Connector supervisor shutdown failed")
     if skill_watch_task is not None:
         assert skill_watch_stop is not None
         skill_watch_stop.set()
@@ -163,6 +173,7 @@ def create_app() -> FastAPI:
     app.include_router(governance.router,  prefix=prefix, tags=["governance"])
     app.include_router(onboarding.router,  prefix=prefix, tags=["onboarding"])
     app.include_router(pipelines.router,   prefix=prefix, tags=["pipelines"])
+    app.include_router(connectors.router,  prefix=prefix, tags=["connectors"])
     app.include_router(admin.router,       prefix=prefix, tags=["admin"])
     app.include_router(ws.router,          prefix=prefix, tags=["websocket"])
 

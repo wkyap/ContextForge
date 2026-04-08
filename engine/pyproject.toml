@@ -49,6 +49,9 @@ dependencies = [
 
     # ─── Filesystem watchers (skill hot-reload) ─────
     "watchfiles>=0.24.0",
+
+    # ─── Connectors (Phase 2.1) ─────────────────────
+    "aiomqtt>=2.3.0",
 ]
 
 

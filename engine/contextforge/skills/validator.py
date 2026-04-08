@@ -55,8 +55,8 @@ def validate_skill(skill: Skill) -> ValidationResult:
         result.add_error(f"Invalid type '{skill.type}' — must be one of {VALID_TYPES}")
     if not skill.domain:
         result.add_error("Missing required field: domain")
-    if skill.version < 1:
-        result.add_error("Version must be >= 1")
+    if not skill.version:
+        result.add_error("Version must be a non-empty string (int or semver)")
     if not skill.description:
         result.add_warning("Missing description — skill will be harder to discover")
 

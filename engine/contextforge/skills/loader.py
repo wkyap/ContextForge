@@ -19,7 +19,7 @@ class Skill:
     name: str
     type: str
     domain: str
-    version: int
+    version: str
     description: str
     file_path: str
     author: str = "human"
@@ -46,7 +46,8 @@ def load_skill(path: Path) -> Skill:
     name = meta.pop("name", path.stem)
     skill_type = meta.pop("type", "knowledge")
     domain = meta.pop("domain", "unknown")
-    version = int(meta.pop("version", 1))
+    # Accept ints (legacy) or semver strings ("1.0.0"). Always store as str.
+    version = str(meta.pop("version", "1"))
     description = meta.pop("description", "")
     author = meta.pop("author", "human")
     tags = meta.pop("tags", [])
