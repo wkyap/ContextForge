@@ -34,6 +34,7 @@ from contextforge.api.v1 import (
     ws,
 )
 from contextforge.connectors.runtime import ConnectorSupervisor
+from contextforge.connectors.sinks import TimescaleSink
 from contextforge.config import get_settings
 from contextforge.db.migrations import run_all_migrations
 from contextforge.db.neo4j import Neo4jClient
@@ -108,8 +109,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.checkpointer_ctx = checkpointer_ctx
     app.state.skill_registry = skill_registry
 
-    # Connector supervisor (Phase 2.1)
-    connector_supervisor = ConnectorSupervisor()
+    # Connector supervisor (Phase 2.1) — TimescaleSink as default persistence
+    connector_supervisor = ConnectorSupervisor(sink=TimescaleSink(timescale))
     app.state.connector_supervisor = connector_supervisor
 
     logger.info("ContextForge engine started (env=%s)", settings.env)
