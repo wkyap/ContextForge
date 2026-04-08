@@ -1,6 +1,6 @@
 ---
 name: trainee_followup
-type: agent_template
+type: template
 domain: workforce
 version: 1.0.0
 description: >

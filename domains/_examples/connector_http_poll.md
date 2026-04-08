@@ -7,6 +7,10 @@ description: Periodic HTTP GET connector. Polls a REST endpoint at a fixed inter
 author: human
 tags: [connector, http, rest, fhir, polling]
 source_kind: http_poll
+autostart: true
+config:
+  url: https://httpbin.org/uuid
+  interval_s: 30
 auth:
   type: any
   fields: [bearer_token, username, password, headers]
