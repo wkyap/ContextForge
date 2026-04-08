@@ -34,6 +34,7 @@ from contextforge.api.v1 import (
     ws,
 )
 from contextforge.connectors.base import LoggingSink
+from contextforge.connectors.config_repo import ConnectorConfigRepo
 from contextforge.connectors.runtime import ConnectorSupervisor
 from contextforge.connectors.sinks import CompositeSink, KGSink, TimescaleSink, VectorSink
 from contextforge.knowledge.embedding_service import EmbeddingService
@@ -114,20 +115,31 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Connector supervisor (Phase 2.1+2.3) — CompositeSink routes records to
     # KG (entity-shaped), Timescale (numeric telemetry), or Logging (fallback).
     embedder = EmbeddingService(settings)
+    kg_sink = KGSink(neo4j)
+    ts_sink = TimescaleSink(timescale)
+    vec_sink = VectorSink(qdrant, embedder)
+    log_sink = LoggingSink()
     composite_sink = CompositeSink(
-        kg=KGSink(neo4j),
-        timescale=TimescaleSink(timescale),
-        vector=VectorSink(qdrant, embedder),
-        fallback=LoggingSink(),
+        kg=kg_sink, timescale=ts_sink, vector=vec_sink, fallback=log_sink,
     )
     connector_supervisor = ConnectorSupervisor(sink=composite_sink)
+    # Register named sinks so persisted connector configs can pick one via `sink`.
+    connector_supervisor.register_sink("kg", kg_sink)
+    connector_supervisor.register_sink("timescale", ts_sink)
+    connector_supervisor.register_sink("vector", vec_sink)
+    connector_supervisor.register_sink("composite", composite_sink)
+    connector_supervisor.register_sink("logging", log_sink)
     app.state.connector_supervisor = connector_supervisor
 
-    # Auto-start any connector SKILL.md entries flagged with autostart: true
+    # Auto-start: SKILL.md flagged with autostart: true, then enabled DB configs.
     try:
         await connector_supervisor.autostart_from_registry(skill_registry)
     except Exception:
-        logger.exception("Connector autostart sweep failed")
+        logger.exception("Connector autostart sweep (registry) failed")
+    try:
+        await connector_supervisor.autostart_from_db(ConnectorConfigRepo(postgres))
+    except Exception:
+        logger.exception("Connector autostart sweep (db) failed")
 
     logger.info("ContextForge engine started (env=%s)", settings.env)
 

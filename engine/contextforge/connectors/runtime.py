@@ -20,23 +20,55 @@ class _RunningConnector:
 
 
 class ConnectorSupervisor:
-    """Manages the lifecycle of multiple named connector instances."""
+    """Manages the lifecycle of multiple named connector instances.
+
+    A *default sink* receives records from any connector that doesn't override.
+    Optional *named sinks* (registered via `register_sink`) let individual
+    connectors pick a target by name (e.g. ``sink="kg"``).
+    """
 
     def __init__(self, sink: Sink | None = None) -> None:
         self._sink: Sink = sink or LoggingSink()
+        self._sinks_by_name: dict[str, Sink] = {}
+        self._sink_for_connector: dict[str, Sink] = {}
         self._running: dict[str, _RunningConnector] = {}
         self._lock = asyncio.Lock()
+
+    def register_sink(self, name: str, sink: Sink) -> None:
+        """Make `sink` available for per-connector override via `sink_name`."""
+        self._sinks_by_name[name] = sink
+        logger.debug("Registered sink alias: %s -> %s", name, type(sink).__name__)
+
+    def list_sinks(self) -> list[str]:
+        return sorted(self._sinks_by_name.keys())
 
     # ── Public API ────────────────────────────────────────────────────────
 
     async def start(
-        self, name: str, source_kind: str, config: dict[str, Any]
+        self,
+        name: str,
+        source_kind: str,
+        config: dict[str, Any],
+        *,
+        sink_name: str | None = None,
     ) -> ConnectorBase:
-        """Instantiate, connect, and begin streaming a connector by name."""
+        """Instantiate, connect, and begin streaming a connector by name.
+
+        If `sink_name` is given it must match a sink registered via
+        `register_sink`; that sink receives records from this connector
+        instead of the supervisor default.
+        """
         async with self._lock:
             if name in self._running:
                 raise ValueError(f"Connector '{name}' already running")
+            if sink_name is not None and sink_name not in self._sinks_by_name:
+                raise KeyError(
+                    f"No sink registered with name {sink_name!r}. "
+                    f"Known: {sorted(self._sinks_by_name)}"
+                )
             connector = get_connector_registry().instantiate(source_kind, name, config)
+            if sink_name is not None:
+                self._sink_for_connector[name] = self._sinks_by_name[sink_name]
             connector._status = ConnectorStatus.STARTING  # noqa: SLF001
             try:
                 await connector.connect()
@@ -54,6 +86,7 @@ class ConnectorSupervisor:
     async def stop(self, name: str) -> None:
         async with self._lock:
             entry = self._running.pop(name, None)
+            self._sink_for_connector.pop(name, None)
         if entry is None:
             raise KeyError(f"Connector '{name}' is not running")
         entry.connector._status = ConnectorStatus.STOPPING  # noqa: SLF001
@@ -102,8 +135,9 @@ class ConnectorSupervisor:
                     "Connector SKILL %s has autostart=true but no source_kind", skill.name
                 )
                 continue
+            sink_name = meta.get("sink")
             try:
-                await self.start(skill.name, source_kind, config)
+                await self.start(skill.name, source_kind, config, sink_name=sink_name)
                 started += 1
             except Exception:
                 logger.exception(
@@ -111,6 +145,23 @@ class ConnectorSupervisor:
                 )
         if started:
             logger.info("Autostarted %d connector(s) from skill registry", started)
+        return started
+
+    async def autostart_from_db(self, repo: Any) -> int:
+        """Start every enabled row in `connector_configs`. Failures are logged."""
+        started = 0
+        configs = await repo.list_all(enabled_only=True)
+        for cfg in configs:
+            try:
+                await self.start(cfg.name, cfg.source_kind, cfg.config, sink_name=cfg.sink)
+                started += 1
+            except Exception:
+                logger.exception(
+                    "Failed to start persisted connector %s (kind=%s)",
+                    cfg.name, cfg.source_kind,
+                )
+        if started:
+            logger.info("Started %d connector(s) from connector_configs", started)
         return started
 
     async def shutdown(self) -> None:
@@ -124,11 +175,12 @@ class ConnectorSupervisor:
     # ── Internal ──────────────────────────────────────────────────────────
 
     async def _run(self, connector: ConnectorBase) -> None:
+        sink = self._sink_for_connector.get(connector.name, self._sink)
         try:
             async for record in connector.stream():
                 connector._mark_emitted()  # noqa: SLF001
                 try:
-                    await self._sink.write(record)
+                    await sink.write(record)
                 except Exception:
                     logger.exception("Sink failed for record from %s", connector.name)
         except asyncio.CancelledError:
