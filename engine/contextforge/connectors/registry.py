@@ -53,7 +53,7 @@ def get_connector_registry() -> ConnectorRegistry:
 def _autoload_drivers() -> None:
     """Import built-in drivers so they self-register."""
     # Imported for side effects (registration).
-    from contextforge.connectors.drivers import http_poll, mqtt  # noqa: F401
+    from contextforge.connectors.drivers import http_poll, mqtt, sql_poll  # noqa: F401
 
 
 _autoload_drivers()
