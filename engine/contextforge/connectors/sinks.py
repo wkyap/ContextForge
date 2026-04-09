@@ -166,34 +166,54 @@ class VectorSink(Sink):
         qdrant: QdrantClient,
         embedder: EmbeddingService,
         collection: str = "document_chunks",
+        batch_size: int = 1,
+        flush_interval_s: float = 2.0,
     ) -> None:
         self._qdrant = qdrant
         self._embedder = embedder
         self._collection = collection
+        self._batch_size = max(1, int(batch_size))
+        self._flush_interval = float(flush_interval_s)
+        self._buffer: list[tuple[str, str, dict[str, Any]]] = []
+        self._lock = asyncio.Lock()
+        self._flush_task: asyncio.Task[None] | None = None
         self.written = 0
         self.skipped = 0
 
     async def write(self, record: Record) -> None:
-        from qdrant_client.models import PointStruct
-
         payload = record.payload or {}
         text = payload.get("text")
         if not text or not isinstance(text, str):
             self.skipped += 1
-            return
-        try:
-            vector = await self._embedder.embed(text)
-        except Exception:
-            self.skipped += 1
-            logger.exception("VectorSink: embedding failed for %s", record.source)
             return
 
         point_payload = {k: v for k, v in payload.items() if k != "text"}
         point_payload["text"] = text
         point_payload["_source"] = record.source
         point_payload["_updated_at"] = record.timestamp
-
         doc_id = str(payload.get("doc_id") or uuid.uuid4())
+
+        if self._batch_size == 1:
+            await self._upsert_one(doc_id, text, point_payload)
+            return
+
+        async with self._lock:
+            self._buffer.append((doc_id, text, point_payload))
+            should_flush = len(self._buffer) >= self._batch_size
+        if should_flush:
+            await self.flush()
+        else:
+            self._ensure_flush_task()
+
+    async def _upsert_one(self, doc_id: str, text: str, point_payload: dict[str, Any]) -> None:
+        from qdrant_client.models import PointStruct
+
+        try:
+            vector = await self._embedder.embed(text)
+        except Exception:
+            self.skipped += 1
+            logger.exception("VectorSink: embedding failed")
+            return
         try:
             await self._qdrant.upsert(
                 self._collection,
@@ -202,10 +222,63 @@ class VectorSink(Sink):
             self.written += 1
         except Exception:
             self.skipped += 1
-            logger.exception("VectorSink: upsert failed for %s", record.source)
+            logger.exception("VectorSink: upsert failed")
+
+    def _ensure_flush_task(self) -> None:
+        if self._flush_task is None or self._flush_task.done():
+            try:
+                self._flush_task = asyncio.create_task(self._flush_loop())
+            except RuntimeError:
+                self._flush_task = None
+
+    async def _flush_loop(self) -> None:
+        try:
+            await asyncio.sleep(self._flush_interval)
+            await self.flush()
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("VectorSink: background flush failed")
+
+    async def flush(self) -> None:
+        from qdrant_client.models import PointStruct
+
+        async with self._lock:
+            if not self._buffer:
+                return
+            batch = self._buffer
+            self._buffer = []
+
+        texts = [t for _, t, _ in batch]
+        try:
+            vectors = await self._embedder.embed_batch(texts)
+        except Exception:
+            self.skipped += len(batch)
+            logger.exception("VectorSink: batch embedding failed (%d records)", len(batch))
+            return
+
+        points = [
+            PointStruct(id=doc_id, vector=vec, payload=pl)
+            for (doc_id, _t, pl), vec in zip(batch, vectors, strict=False)
+        ]
+        try:
+            await self._qdrant.upsert(self._collection, points)
+            self.written += len(points)
+        except Exception:
+            self.skipped += len(points)
+            logger.exception("VectorSink: batch upsert failed (%d points)", len(points))
+
+    async def close(self) -> None:
+        if self._flush_task is not None and not self._flush_task.done():
+            self._flush_task.cancel()
+            try:
+                await self._flush_task
+            except (asyncio.CancelledError, Exception):
+                pass
+        await self.flush()
 
     def stats(self) -> dict[str, Any]:
-        return {"written": self.written, "skipped": self.skipped}
+        return {"written": self.written, "skipped": self.skipped, "buffered": len(self._buffer)}
 
 
 class FanOutSink(Sink):
