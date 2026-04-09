@@ -5,6 +5,7 @@ import EntityDashboard from "./pages/EntityDashboard";
 import GovernanceDashboard from "./pages/GovernanceDashboard";
 import CareerDashboard from "./pages/CareerDashboard";
 import TraineeList from "./pages/TraineeList";
+import ConnectorMarketplace from "./pages/ConnectorMarketplace";
 
 const navSections = [
   {
@@ -20,6 +21,7 @@ const navSections = [
       { to: "/chat", label: "Agent Chat" },
       { to: "/graph", label: "Graph" },
       { to: "/entities", label: "Entities" },
+      { to: "/connectors", label: "Connectors" },
       { to: "/governance", label: "Governance" },
     ],
   },
@@ -75,6 +77,7 @@ export default function App() {
           <Route path="/chat" element={<AgentChat />} />
           <Route path="/graph" element={<GraphExplorer />} />
           <Route path="/entities" element={<EntityDashboard />} />
+          <Route path="/connectors" element={<ConnectorMarketplace />} />
           <Route path="/governance" element={<GovernanceDashboard />} />
         </Routes>
       </main>

@@ -13,8 +13,12 @@ from typing import Any
 
 import pytest
 
-from contextforge.connectors.base import LoggingSink, Record, Sink
+import asyncio
+from collections.abc import AsyncIterator
+
+from contextforge.connectors.base import ConnectorBase, LoggingSink, Record, Sink
 from contextforge.connectors.registry import get_connector_registry
+from contextforge.connectors.runtime import ConnectorSupervisor
 from contextforge.connectors.sinks import CompositeSink, FanOutSink, VectorSink
 
 
@@ -164,6 +168,159 @@ async def test_vector_sink_skips_non_text_records() -> None:
     await sink.write(Record(payload={"value": 5}, source="t"))
     assert sink.skipped == 1
     assert sink.written == 0
+
+
+class FakeConnector(ConnectorBase):
+    source_kind = "fake"
+
+    def __init__(self, name: str, config: dict[str, Any]) -> None:
+        super().__init__(name=name, config=config)
+        self.connect_called = False
+        self.close_called = False
+
+    async def connect(self) -> None:
+        self.connect_called = True
+        if self.config.get("fail_connect"):
+            raise RuntimeError("nope")
+
+    async def stream(self) -> AsyncIterator[Record]:
+        n = int(self.config.get("emit", 3))
+        for i in range(n):
+            yield Record(payload={"i": i, **self.config.get("payload", {})}, source=f"fake://{self.name}")
+            await asyncio.sleep(0)
+        # Then idle until cancelled
+        while True:
+            await asyncio.sleep(0.01)
+
+    async def close(self) -> None:
+        self.close_called = True
+
+
+# Register once for the supervisor tests.
+get_connector_registry().register(FakeConnector)
+
+
+class FakeSkill:
+    def __init__(self, name: str, metadata: dict[str, Any]) -> None:
+        self.name = name
+        self.metadata = metadata
+
+
+class FakeSkillRegistry:
+    def __init__(self, skills: list[FakeSkill]) -> None:
+        self._skills = skills
+
+    def list_by_type(self, type_: str) -> list[FakeSkill]:
+        return list(self._skills)
+
+
+class FakeConfig:
+    def __init__(self, name: str, source_kind: str, config: dict[str, Any], sink: str | None = None) -> None:
+        self.name = name
+        self.source_kind = source_kind
+        self.config = config
+        self.sink = sink
+
+
+class FakeRepo:
+    def __init__(self, configs: list[FakeConfig]) -> None:
+        self._configs = configs
+
+    async def list_all(self, enabled_only: bool = False) -> list[FakeConfig]:
+        return list(self._configs)
+
+
+@pytest.mark.asyncio
+async def test_supervisor_start_streams_to_default_sink() -> None:
+    capture = CapturingSink()
+    sup = ConnectorSupervisor(sink=capture)
+    await sup.start("c1", "fake", {"emit": 3})
+    # Wait for emission to flush.
+    for _ in range(50):
+        if len(capture.records) >= 3:
+            break
+        await asyncio.sleep(0.01)
+    assert len(capture.records) == 3
+    assert sup.get("c1") is not None
+    await sup.stop("c1")
+    assert sup.get("c1") is None
+
+
+@pytest.mark.asyncio
+async def test_supervisor_per_connector_sink_override() -> None:
+    default = CapturingSink()
+    alt = CapturingSink()
+    sup = ConnectorSupervisor(sink=default)
+    sup.register_sink("alt", alt)
+    assert "alt" in sup.list_sinks()
+    await sup.start("c1", "fake", {"emit": 2}, sink_name="alt")
+    for _ in range(50):
+        if len(alt.records) >= 2:
+            break
+        await asyncio.sleep(0.01)
+    assert len(alt.records) == 2
+    assert default.records == []
+    await sup.shutdown()
+
+
+@pytest.mark.asyncio
+async def test_supervisor_unknown_sink_raises() -> None:
+    sup = ConnectorSupervisor(sink=CapturingSink())
+    with pytest.raises(KeyError):
+        await sup.start("c1", "fake", {}, sink_name="missing")
+
+
+@pytest.mark.asyncio
+async def test_supervisor_duplicate_name_raises() -> None:
+    sup = ConnectorSupervisor(sink=CapturingSink())
+    await sup.start("c1", "fake", {"emit": 1})
+    with pytest.raises(ValueError):
+        await sup.start("c1", "fake", {"emit": 1})
+    await sup.shutdown()
+
+
+@pytest.mark.asyncio
+async def test_supervisor_failed_connect_propagates() -> None:
+    sup = ConnectorSupervisor(sink=CapturingSink())
+    with pytest.raises(RuntimeError):
+        await sup.start("c1", "fake", {"fail_connect": True})
+    assert sup.get("c1") is None
+
+
+@pytest.mark.asyncio
+async def test_autostart_from_registry_starts_only_flagged() -> None:
+    skills = [
+        FakeSkill("on", {"source_kind": "fake", "autostart": True, "config": {"emit": 1}}),
+        FakeSkill("off", {"source_kind": "fake", "autostart": False, "config": {"emit": 1}}),
+        FakeSkill("nokind", {"autostart": True}),
+    ]
+    sup = ConnectorSupervisor(sink=CapturingSink())
+    started = await sup.autostart_from_registry(FakeSkillRegistry(skills))
+    assert started == 1
+    assert sup.get("on") is not None
+    assert sup.get("off") is None
+    await sup.shutdown()
+
+
+@pytest.mark.asyncio
+async def test_autostart_from_db_starts_all_rows() -> None:
+    repo = FakeRepo([
+        FakeConfig("a", "fake", {"emit": 1}),
+        FakeConfig("b", "fake", {"emit": 1}),
+    ])
+    sup = ConnectorSupervisor(sink=CapturingSink())
+    started = await sup.autostart_from_db(repo)
+    assert started == 2
+    await sup.shutdown()
+
+
+@pytest.mark.asyncio
+async def test_supervisor_shutdown_closes_connectors() -> None:
+    sup = ConnectorSupervisor(sink=CapturingSink())
+    conn = await sup.start("c1", "fake", {"emit": 1})
+    await sup.shutdown()
+    assert isinstance(conn, FakeConnector)
+    assert conn.close_called is True
 
 
 @pytest.mark.asyncio
