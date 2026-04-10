@@ -8,5 +8,19 @@ in-process by `LocalRunner` or submitted to a Temporal worker via
 
 from contextforge.pipelines.dag import DAG, DAGValidationError, Task
 from contextforge.pipelines.runner import LocalRunner, TaskResult
+from contextforge.pipelines.worker import (
+    clear_activities,
+    list_activities,
+    register_activity,
+)
 
-__all__ = ["DAG", "DAGValidationError", "LocalRunner", "Task", "TaskResult"]
+__all__ = [
+    "DAG",
+    "DAGValidationError",
+    "LocalRunner",
+    "Task",
+    "TaskResult",
+    "clear_activities",
+    "list_activities",
+    "register_activity",
+]

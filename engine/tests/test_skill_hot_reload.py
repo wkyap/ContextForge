@@ -1,12 +1,14 @@
-"""Offline tests for SkillRegistry.reload_file (hot-reload core)."""
+"""Offline tests for SkillRegistry.reload_file + watch_skills."""
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 
 import pytest
 
 from contextforge.skills.registry import SkillRegistry
+from contextforge.skills.watcher import watch_skills
 
 VALID_SKILL = """\
 ---
@@ -118,3 +120,65 @@ def test_reload_file_changes_skill_type_correctly(
     # Old type bucket no longer references it.
     assert all(s.name != "delta" for s in reg.list_by_type("knowledge"))
     assert "delta" in [s.name for s in reg.list_by_type("connector")]
+
+
+@pytest.mark.asyncio
+async def test_watch_skills_picks_up_new_file(tmp_path: Path) -> None:
+    """The async watcher should register a brand-new SKILL.md it observes."""
+    reg = SkillRegistry(root=tmp_path, lazy=True)
+    # Trigger lazy load with empty dir.
+    reg.load_from_directory(tmp_path)
+    assert reg.get("epsilon") is None
+
+    stop = asyncio.Event()
+    watcher = asyncio.create_task(watch_skills(reg, tmp_path, stop))
+    try:
+        # Give the watcher a moment to start observing.
+        await asyncio.sleep(0.2)
+        f = tmp_path / "epsilon.md"
+        _write(f, VALID_SKILL.format(name="epsilon", desc="watched in"))
+
+        # Poll for the registration with a timeout.
+        for _ in range(50):
+            if reg.get("epsilon") is not None:
+                break
+            await asyncio.sleep(0.1)
+
+        assert reg.get("epsilon") is not None, "watcher did not pick up new skill"
+    finally:
+        stop.set()
+        watcher.cancel()
+        try:
+            await watcher
+        except (asyncio.CancelledError, Exception):
+            pass
+
+
+@pytest.mark.asyncio
+async def test_watch_skills_picks_up_modification(tmp_path: Path) -> None:
+    reg = SkillRegistry(root=tmp_path, lazy=True)
+    f = tmp_path / "zeta.md"
+    _write(f, VALID_SKILL.format(name="zeta", desc="initial"))
+    reg.load_from_directory(tmp_path)
+    assert reg.get("zeta").description == "initial"  # type: ignore[union-attr]
+
+    stop = asyncio.Event()
+    watcher = asyncio.create_task(watch_skills(reg, tmp_path, stop))
+    try:
+        await asyncio.sleep(0.2)
+        _write(f, VALID_SKILL.format(name="zeta", desc="modified by watcher"))
+
+        for _ in range(50):
+            s = reg.get("zeta")
+            if s and "modified" in s.description:
+                break
+            await asyncio.sleep(0.1)
+
+        assert "modified" in reg.get("zeta").description  # type: ignore[union-attr]
+    finally:
+        stop.set()
+        watcher.cancel()
+        try:
+            await watcher
+        except (asyncio.CancelledError, Exception):
+            pass

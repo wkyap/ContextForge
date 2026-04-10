@@ -6,6 +6,7 @@ import GovernanceDashboard from "./pages/GovernanceDashboard";
 import CareerDashboard from "./pages/CareerDashboard";
 import TraineeList from "./pages/TraineeList";
 import ConnectorMarketplace from "./pages/ConnectorMarketplace";
+import PipelineBuilder from "./pages/PipelineBuilder";
 
 const navSections = [
   {
@@ -22,6 +23,7 @@ const navSections = [
       { to: "/graph", label: "Graph" },
       { to: "/entities", label: "Entities" },
       { to: "/connectors", label: "Connectors" },
+      { to: "/pipelines", label: "Pipelines" },
       { to: "/governance", label: "Governance" },
     ],
   },
@@ -78,6 +80,7 @@ export default function App() {
           <Route path="/graph" element={<GraphExplorer />} />
           <Route path="/entities" element={<EntityDashboard />} />
           <Route path="/connectors" element={<ConnectorMarketplace />} />
+          <Route path="/pipelines" element={<PipelineBuilder />} />
           <Route path="/governance" element={<GovernanceDashboard />} />
         </Routes>
       </main>

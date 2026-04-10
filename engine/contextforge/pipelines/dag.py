@@ -21,12 +21,17 @@ class Task:
     `fn` is invoked with the resolved results of its upstream tasks as keyword
     arguments (key = upstream task id) once all dependencies have completed
     successfully. Set `depends_on=[]` for root tasks.
+
+    `activity_name` is optional and only used by the Temporal runner — it
+    names a pre-registered activity on the worker. The local runner ignores
+    it and always calls `fn`.
     """
 
     id: str
     fn: TaskFn
     depends_on: list[str] = field(default_factory=list)
     retries: int = 0
+    activity_name: str | None = None
 
     def __post_init__(self) -> None:
         if not self.id:
@@ -60,8 +65,40 @@ class DAG:
         fn: TaskFn,
         depends_on: list[str] | None = None,
         retries: int = 0,
+        activity_name: str | None = None,
     ) -> Task:
-        return self.add(Task(id=id, fn=fn, depends_on=list(depends_on or []), retries=retries))
+        return self.add(
+            Task(
+                id=id,
+                fn=fn,
+                depends_on=list(depends_on or []),
+                retries=retries,
+                activity_name=activity_name,
+            )
+        )
+
+    def to_spec(self) -> dict[str, Any]:
+        """Serialise the DAG to a dict suitable for Temporal workflow input.
+
+        Each task must declare an `activity_name` since plain Python callables
+        cannot cross the workflow/activity boundary. The local runner does not
+        use this method.
+        """
+        tasks = []
+        for t in self._tasks.values():
+            if not t.activity_name:
+                raise DAGValidationError(
+                    f"Task {t.id!r} needs activity_name to be Temporal-serialisable"
+                )
+            tasks.append(
+                {
+                    "id": t.id,
+                    "activity": t.activity_name,
+                    "depends_on": list(t.depends_on),
+                    "retries": t.retries,
+                }
+            )
+        return {"name": self.name, "tasks": tasks}
 
     @property
     def tasks(self) -> dict[str, Task]:

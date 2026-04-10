@@ -153,5 +153,46 @@ def test_temporal_runner_raises_clear_error_when_missing() -> None:
             TemporalRunner(client=object())
 
 
+def test_dag_to_spec_requires_activity_name() -> None:
+    dag = DAG()
+    dag.task("a", _noop)
+    with pytest.raises(DAGValidationError, match="activity_name"):
+        dag.to_spec()
+
+
+def test_dag_to_spec_serialises_tasks_in_temporal_shape() -> None:
+    dag = DAG("ingest")
+    dag.task("a", _noop, activity_name="fetch")
+    dag.task("b", _noop, depends_on=["a"], retries=2, activity_name="parse")
+    spec = dag.to_spec()
+    assert spec["name"] == "ingest"
+    by_id = {t["id"]: t for t in spec["tasks"]}
+    assert by_id["a"]["activity"] == "fetch"
+    assert by_id["a"]["depends_on"] == []
+    assert by_id["b"]["activity"] == "parse"
+    assert by_id["b"]["depends_on"] == ["a"]
+    assert by_id["b"]["retries"] == 2
+
+
+def test_pipeline_activity_registry_round_trip() -> None:
+    from contextforge.pipelines import (
+        clear_activities,
+        list_activities,
+        register_activity,
+    )
+    from contextforge.pipelines.worker import get_activity
+
+    clear_activities()
+
+    async def fetch() -> str:
+        return "ok"
+
+    register_activity("fetch", fetch)
+    assert "fetch" in list_activities()
+    assert get_activity("fetch") is fetch
+    clear_activities()
+    assert list_activities() == []
+
+
 async def _noop(**_: Any) -> None:
     return None
