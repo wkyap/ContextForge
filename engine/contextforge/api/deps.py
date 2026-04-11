@@ -12,6 +12,7 @@ from contextforge.db.postgres import PostgresClient
 from contextforge.db.qdrant import QdrantClient
 from contextforge.db.redis import RedisClient
 from contextforge.db.timescale import TimescaleClient
+from contextforge.tenancy.context import TenantContext, get_current_tenant
 
 # ── Settings ──────────────────────────────────────────────────────────────────
 
@@ -39,6 +40,8 @@ def _get_qdrant(request: Request) -> QdrantClient:
 def _get_redis(request: Request) -> RedisClient:
     return cast(RedisClient, request.app.state.redis)
 
+
+TenantDep = Annotated[TenantContext, Depends(get_current_tenant)]
 
 PostgresDep = Annotated[PostgresClient, Depends(_get_postgres)]
 TimescaleDep = Annotated[TimescaleClient, Depends(_get_timescale)]

@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse
 from contextforge.agents.graph import create_agent
 from contextforge.api.v1 import (
     admin,
+    agent_configs,
     agents,
     connectors,
     courses,
@@ -26,25 +27,27 @@ from contextforge.api.v1 import (
     openings,
     pipelines,
     placements,
+    quality,
     reports,
     search,
     skills,
+    tenants,
     timeseries,
     trainees,
     ws,
 )
+from contextforge.config import get_settings
 from contextforge.connectors.base import LoggingSink
 from contextforge.connectors.config_repo import ConnectorConfigRepo
 from contextforge.connectors.runtime import ConnectorSupervisor
 from contextforge.connectors.sinks import CompositeSink, KGSink, TimescaleSink, VectorSink
-from contextforge.knowledge.embedding_service import EmbeddingService
-from contextforge.config import get_settings
 from contextforge.db.migrations import run_all_migrations
 from contextforge.db.neo4j import Neo4jClient
 from contextforge.db.postgres import PostgresClient
 from contextforge.db.qdrant import QdrantClient
 from contextforge.db.redis import RedisClient
 from contextforge.db.timescale import TimescaleClient
+from contextforge.knowledge.embedding_service import EmbeddingService
 from contextforge.observability.langfuse_setup import init_langfuse, shutdown_langfuse
 from contextforge.skills.registry import SkillRegistry
 from contextforge.skills.watcher import watch_skills
@@ -191,6 +194,11 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # ── Multi-tenant middleware ───────────────────────────────────────────
+    from contextforge.tenancy.middleware import TenantMiddleware
+
+    app.add_middleware(TenantMiddleware)
+
     # ── Routers ───────────────────────────────────────────────────────────
     prefix = "/api/v1"
     app.include_router(health.router,      prefix=prefix, tags=["health"])
@@ -203,6 +211,9 @@ def create_app() -> FastAPI:
     app.include_router(onboarding.router,  prefix=prefix, tags=["onboarding"])
     app.include_router(pipelines.router,   prefix=prefix, tags=["pipelines"])
     app.include_router(connectors.router,  prefix=prefix, tags=["connectors"])
+    app.include_router(tenants.router,       prefix=prefix, tags=["tenants"])
+    app.include_router(agent_configs.router, prefix=prefix, tags=["agent-configs"])
+    app.include_router(quality.router,     prefix=prefix, tags=["quality"])
     app.include_router(admin.router,       prefix=prefix, tags=["admin"])
     app.include_router(ws.router,          prefix=prefix, tags=["websocket"])
 
