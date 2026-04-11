@@ -5,6 +5,8 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
+from typing import Any
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
@@ -48,8 +50,8 @@ class TraineeOut(BaseModel):
     education_level: str | None = None
     field_of_study: str | None = None
     years_experience: int = 0
-    career_goals: list = []
-    preferred_sectors: list = []
+    career_goals: list[str] = []
+    preferred_sectors: list[str] = []
     programme_type: str | None = None
     status: str = "applied"
     created_at: str | None = None
@@ -65,10 +67,10 @@ async def list_trainees(
     sector: str | None = None,
     limit: int = 50,
     offset: int = 0,
-) -> dict:
+) -> dict[str, Any]:
     """List trainees with optional filters."""
-    conditions = []
-    params: list = []
+    conditions: list[str] = []
+    params: list[Any] = []
     idx = 1
 
     if status:
@@ -105,7 +107,7 @@ async def list_trainees(
 
 
 @router.get("/{trainee_id}")
-async def get_trainee(trainee_id: str, postgres: PostgresDep) -> dict:
+async def get_trainee(trainee_id: str, postgres: PostgresDep) -> dict[str, Any]:
     """Get a single trainee by ID."""
     row = await postgres.fetch_one(
         "SELECT * FROM trainees WHERE id = $1 OR trainee_code = $1",
@@ -121,7 +123,7 @@ async def create_trainee(
     body: TraineeCreate,
     postgres: PostgresDep,
     neo4j: Neo4jDep,
-) -> dict:
+) -> dict[str, Any]:
     """Create a new trainee record."""
     trainee_id = str(uuid.uuid4())
 
@@ -173,7 +175,7 @@ async def update_trainee(
     trainee_id: str,
     body: TraineeUpdate,
     postgres: PostgresDep,
-) -> dict:
+) -> dict[str, Any]:
     """Update trainee fields."""
     updates = []
     params = []
@@ -200,9 +202,9 @@ async def update_trainee(
 
 
 @router.get("/{trainee_id}/timeline")
-async def get_trainee_timeline(trainee_id: str, postgres: PostgresDep) -> dict:
+async def get_trainee_timeline(trainee_id: str, postgres: PostgresDep) -> dict[str, Any]:
     """Get trainee lifecycle timeline events."""
-    events = []
+    events: list[dict[str, Any]] = []
 
     # Applications
     apps = await postgres.fetch(

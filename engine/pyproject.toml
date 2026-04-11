@@ -92,5 +92,26 @@ python_version = "3.12"
 strict = true
 
 [[tool.mypy.overrides]]
-module = ["asyncpg", "frontmatter"]
+module = [
+    "asyncpg",
+    "frontmatter",
+    "temporalio",
+    "temporalio.*",
+    "aiomqtt",
+    "aiokafka",
+    "asyncua",
+    "docx",
+    "bs4",
+    "openpyxl",
+    "openpyxl.*",
+    "presidio_analyzer",
+    "presidio_anonymizer",
+    "langgraph.*",
+    "langchain_core.*",
+    "litellm",
+    "litellm.*",
+    "qdrant_client.*",
+    "langfuse",
+    "langfuse.*",
+]
 ignore_missing_imports = true

@@ -148,7 +148,6 @@ class SkillBasedIngester(BaseIngester):
                             to_id=props.pop("to_id", ""),
                             rel_type=rule.target_label,
                             properties=props,
-                            changed_by="skill_based_ingester",
                         )
                         result.relationships_created += 1
                 except Exception as exc:

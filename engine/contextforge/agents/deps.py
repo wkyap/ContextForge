@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 
 @dataclass
@@ -15,6 +16,6 @@ class AgentDeps:
 
     domain: str = "industrial"
     db_uri: str = ""
-    skill_catalog: dict = field(default_factory=dict)
+    skill_catalog: dict[str, Any] = field(default_factory=dict)
     budget_remaining_usd: float = 1.0
     user_id: str = "anonymous"

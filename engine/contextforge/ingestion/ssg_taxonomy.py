@@ -98,7 +98,7 @@ class SSGTaxonomyLoader(BaseIngester):
         )
 
     async def ingest(self, data: Any) -> IngestResult:
-        skills: list[dict] = data
+        skills: list[dict[str, Any]] = data
         result = IngestResult()
 
         # Create skill nodes

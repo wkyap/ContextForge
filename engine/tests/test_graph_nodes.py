@@ -38,13 +38,13 @@ async def test_context_check_compacts_when_over_soft_limit() -> None:
 
 @pytest.mark.asyncio
 async def test_context_check_handles_missing_context() -> None:
-    assert await context_check({}) == {}  # type: ignore[arg-type]
-    assert await context_check({"context": None}) == {}  # type: ignore[arg-type]
+    assert await context_check({}) == {}  # type: ignore[typeddict-item]
+    assert await context_check({"context": None}) == {}  # type: ignore[typeddict-item]
 
 
 @pytest.mark.asyncio
 async def test_guardrails_check_skips_when_no_output() -> None:
-    delta = await guardrails_check({"domain": "industrial"})  # type: ignore[arg-type]
+    delta = await guardrails_check({"domain": "industrial"})  # type: ignore[typeddict-item]
     results = delta["guardrails_results"]
     assert results[0]["status"] == "skipped"
 

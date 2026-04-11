@@ -99,7 +99,7 @@ class ToolGenerator:
             logger.error("Failed to parse tool generation response")
             return []
 
-        tools = data.get("tools", [])
+        tools: list[dict[str, Any]] = data.get("tools", [])
 
         logger.info(
             "Generated %d tool proposals for domain '%s'",

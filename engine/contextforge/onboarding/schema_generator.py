@@ -107,7 +107,7 @@ class SchemaGenerator:
             logger.error("Failed to parse schema generation response")
             return []
 
-        schemas = data.get("schemas", [])
+        schemas: list[dict[str, Any]] = data.get("schemas", [])
         detected = data.get("detected_standards", [])
 
         if detected:

@@ -26,7 +26,7 @@ class KafkaConnector(ConnectorBase):
 
     async def connect(self) -> None:
         try:
-            from aiokafka import AIOKafkaConsumer  # type: ignore[import-not-found]
+            from aiokafka import AIOKafkaConsumer
         except ImportError as exc:
             raise RuntimeError(
                 "aiokafka is not installed. Install with `pip install aiokafka` "

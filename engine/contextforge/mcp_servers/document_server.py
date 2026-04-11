@@ -174,7 +174,7 @@ class DocumentTools:
         # Remove script and style elements
         for tag in soup(["script", "style"]):
             tag.decompose()
-        return soup.get_text(separator="\n", strip=True)
+        return str(soup.get_text(separator="\n", strip=True))
 
     # ------------------------------------------------------------------
     # chunk_document

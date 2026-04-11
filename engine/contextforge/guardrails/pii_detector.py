@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 logger = logging.getLogger(__name__)
 
 # Common PII patterns (UK + US focused).
-_PATTERNS: dict[str, re.Pattern] = {
+_PATTERNS: dict[str, re.Pattern[str]] = {
     "email": re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"),
     "phone_uk": re.compile(r"\b(?:0|\+44)\d{10,11}\b"),
     "phone_us": re.compile(r"\b(?:\+1)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b"),

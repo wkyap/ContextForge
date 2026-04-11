@@ -26,7 +26,7 @@ class OPCUAConnector(ConnectorBase):
 
     async def connect(self) -> None:
         try:
-            from asyncua import Client  # type: ignore[import-not-found]
+            from asyncua import Client
         except ImportError as exc:
             raise RuntimeError(
                 "asyncua is not installed. Install with `pip install asyncua` "

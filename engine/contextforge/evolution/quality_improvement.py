@@ -47,7 +47,7 @@ class QualityImprover:
 
         raw = result.choices[0].message.content or "{}"
         try:
-            evaluation = json.loads(raw)
+            evaluation: dict[str, Any] = json.loads(raw)
         except json.JSONDecodeError:
             evaluation = {"scores": {}, "overall": 0, "issues": [], "suggestions": []}
 
@@ -73,6 +73,7 @@ class QualityImprover:
 
         raw = result.choices[0].message.content or "{}"
         try:
-            return json.loads(raw)
+            proposal: dict[str, Any] = json.loads(raw)
         except json.JSONDecodeError:
-            return {"proposal_type": "unknown", "title": "Parse error", "changes": []}
+            proposal = {"proposal_type": "unknown", "title": "Parse error", "changes": []}
+        return proposal

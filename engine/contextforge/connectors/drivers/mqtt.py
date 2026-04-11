@@ -26,7 +26,7 @@ class MQTTConnector(ConnectorBase):
 
     async def connect(self) -> None:
         try:
-            import aiomqtt  # type: ignore[import-not-found]
+            import aiomqtt
         except ImportError as exc:
             raise RuntimeError(
                 "aiomqtt is not installed. Install with `pip install aiomqtt` "

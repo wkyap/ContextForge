@@ -34,7 +34,7 @@ orchestrator = Agent(
 
 
 @orchestrator.tool
-async def search_skill_catalog(ctx: RunContext[AgentDeps], query: str) -> list[dict]:
+async def search_skill_catalog(ctx: RunContext[AgentDeps], query: str) -> list[dict[str, Any]]:
     """Search the SKILL.md catalog for relevant skills."""
     catalog = ctx.deps.skill_catalog
     if isinstance(catalog, dict):
@@ -57,7 +57,7 @@ def _estimate_cost(usage: Any) -> float:
 
 # ── LangGraph node wrapper ────────────────────────────────────────────────────
 
-async def orchestrator_node(state: AgentState) -> dict:
+async def orchestrator_node(state: AgentState) -> dict[str, Any]:
     """LangGraph node that wraps the PydanticAI orchestrator agent."""
     deps = AgentDeps(
         domain=state.get("domain", "industrial"),

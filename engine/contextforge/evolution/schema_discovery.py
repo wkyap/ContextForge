@@ -67,7 +67,7 @@ class SchemaDiscoveryAgent:
 
         raw = response.choices[0].message.content or "{}"
         try:
-            result = json.loads(raw)
+            result: dict[str, Any] = json.loads(raw)
         except json.JSONDecodeError:
             result = {"new_entity_types": [], "new_relationship_types": [], "reasoning": "Parse error"}
 

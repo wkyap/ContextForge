@@ -6,6 +6,8 @@ invalid output, PydanticAI auto-retries with the validation error fed back.
 
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -26,12 +28,12 @@ class OrchestratorPlan(BaseModel):
 class RetrievalResult(BaseModel):
     """Structured retrieval output — every field validated."""
 
-    entities_found: list[dict] = Field(
+    entities_found: list[dict[str, Any]] = Field(
         default_factory=list, description="Resolved entities from KG"
     )
-    time_series_data: list[dict] | None = Field(default=None)
-    vector_results: list[dict] | None = Field(default=None)
-    graph_paths: list[dict] | None = Field(default=None)
+    time_series_data: list[dict[str, Any]] | None = Field(default=None)
+    vector_results: list[dict[str, Any]] | None = Field(default=None)
+    graph_paths: list[dict[str, Any]] | None = Field(default=None)
     community_summaries: list[str] | None = Field(default=None)
     confidence: float = Field(ge=0.0, le=1.0, description="Retrieval confidence")
     sources: list[str] = Field(
@@ -43,11 +45,11 @@ class AnalysisResult(BaseModel):
     """Analysis output — deterministic scores are validated as computed."""
 
     findings: list[str] = Field(description="Key findings from analysis")
-    computed_scores: dict = Field(
+    computed_scores: dict[str, Any] = Field(
         default_factory=dict,
         description="Deterministic scores (NEWS2, OEE, etc.) — NOT LLM-inferred",
     )
-    correlations: list[dict] | None = Field(default=None)
+    correlations: list[dict[str, Any]] | None = Field(default=None)
     root_cause_hypothesis: str | None = Field(default=None)
     confidence: float = Field(ge=0.0, le=1.0)
 
@@ -65,10 +67,10 @@ class ActionResult(BaseModel):
 class CompressedContext(BaseModel):
     """Structured compression output — every field is useful."""
 
-    key_entities: list[dict] = Field(description="Resolved entities with IDs")
-    numeric_values: list[dict] = Field(description="Measurements with timestamps")
-    relationships: list[dict] = Field(description="Entity-entity connections")
-    alerts_and_alarms: list[dict] = Field(
+    key_entities: list[dict[str, Any]] = Field(description="Resolved entities with IDs")
+    numeric_values: list[dict[str, Any]] = Field(description="Measurements with timestamps")
+    relationships: list[dict[str, Any]] = Field(description="Entity-entity connections")
+    alerts_and_alarms: list[dict[str, Any]] = Field(
         default_factory=list, description="Active alerts in time order"
     )
     relevant_procedures: list[str] = Field(

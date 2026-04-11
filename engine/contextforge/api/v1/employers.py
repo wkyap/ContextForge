@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import uuid
 
+from typing import Any
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
@@ -29,10 +31,10 @@ async def list_employers(
     tier: str | None = None,
     limit: int = 50,
     offset: int = 0,
-) -> dict:
+) -> dict[str, Any]:
     """List employer partners."""
-    conditions = []
-    params: list = []
+    conditions: list[str] = []
+    params: list[Any] = []
     idx = 1
 
     if sector:
@@ -61,7 +63,7 @@ async def list_employers(
 
 
 @router.get("/{employer_id}")
-async def get_employer(employer_id: str, postgres: PostgresDep) -> dict:
+async def get_employer(employer_id: str, postgres: PostgresDep) -> dict[str, Any]:
     """Get employer by ID or UEN."""
     row = await postgres.fetch_one(
         "SELECT * FROM employers WHERE id::text = $1 OR uen = $1",
@@ -77,7 +79,7 @@ async def create_employer(
     body: EmployerCreate,
     postgres: PostgresDep,
     neo4j: Neo4jDep,
-) -> dict:
+) -> dict[str, Any]:
     """Register a new employer partner."""
     employer_id = str(uuid.uuid4())
 

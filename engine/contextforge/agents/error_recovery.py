@@ -43,7 +43,7 @@ class BudgetExceededError(AgentError):
 
 # ── Retry decorator for LLM calls ────────────────────────────────────────────
 
-def with_llm_retry(fn: Callable) -> Callable:
+def with_llm_retry(fn: Callable[..., Any]) -> Callable[..., Any]:
     """Retry LLM calls with exponential backoff."""
     return retry(
         retry=retry_if_exception_type((TimeoutError, ConnectionError)),

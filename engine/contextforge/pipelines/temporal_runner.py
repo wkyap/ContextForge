@@ -30,7 +30,7 @@ class TemporalRunner:
 
     def __init__(self, client: Any, task_queue: str = "contextforge-pipelines") -> None:
         try:
-            import temporalio  # type: ignore[import-not-found]  # noqa: F401
+            import temporalio  # noqa: F401
         except ImportError as exc:
             raise TemporalNotInstalledError(
                 "temporalio is not installed. `pip install temporalio` to enable "
@@ -48,7 +48,7 @@ class TemporalRunner:
     ) -> dict[str, Any]:
         from datetime import timedelta
 
-        from temporalio.common import RetryPolicy  # type: ignore[import-not-found]
+        from temporalio.common import RetryPolicy
 
         spec = dag.to_spec()  # raises if any task lacks activity_name
         timeout = timedelta(seconds=run_timeout_s) if run_timeout_s else None

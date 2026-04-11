@@ -89,7 +89,7 @@ class AutonomyController:
         if not thresholds:
             return False
 
-        return (
+        return bool(
             level_data.get("proposal_count", 0) >= thresholds["min_proposals"]
             and level_data.get("approval_rate", 0) >= thresholds["min_approval_rate"]
         )

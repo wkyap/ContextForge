@@ -32,12 +32,12 @@ class AgentState(TypedDict):
 
 # ── Graph builder ─────────────────────────────────────────────────────────────
 
-def _build_graph() -> StateGraph:
+def _build_graph() -> StateGraph[AgentState]:
     """Construct a single-node LangGraph that calls LiteLLM."""
 
     async def chat_node(state: AgentState) -> dict[str, Any]:
         """Call the LLM via LiteLLM and append the response."""
-        messages = [
+        messages: list[dict[str, Any]] = [
             {"role": "system", "content": "You are ContextForge, an AI assistant."},
         ]
         for msg in state["messages"]:
@@ -62,7 +62,7 @@ def _build_graph() -> StateGraph:
 
 # ── Compiled graph factory ────────────────────────────────────────────────────
 
-async def create_agent(settings: Settings) -> tuple[CompiledStateGraph, Any]:
+async def create_agent(settings: Settings) -> tuple[CompiledStateGraph[AgentState], Any]:
     """Return a compiled LangGraph agent with async Postgres checkpointing.
 
     Returns (compiled_graph, checkpointer_context) — caller must keep the
@@ -79,7 +79,7 @@ async def create_agent(settings: Settings) -> tuple[CompiledStateGraph, Any]:
 # ── Convenience runner ────────────────────────────────────────────────────────
 
 async def run_agent_chat(
-    agent: CompiledStateGraph,
+    agent: CompiledStateGraph[AgentState],
     message: str,
     *,
     thread_id: str | None = None,

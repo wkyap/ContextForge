@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import uuid
 
+from typing import Any
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
@@ -35,10 +37,10 @@ async def list_placements(
     programme_id: str | None = None,
     limit: int = 50,
     offset: int = 0,
-) -> dict:
+) -> dict[str, Any]:
     """List placements with optional filters."""
-    conditions = []
-    params: list = []
+    conditions: list[str] = []
+    params: list[Any] = []
     idx = 1
 
     if status:
@@ -69,7 +71,7 @@ async def list_placements(
 
 
 @router.post("", status_code=201)
-async def create_placement(body: PlacementCreate, postgres: PostgresDep) -> dict:
+async def create_placement(body: PlacementCreate, postgres: PostgresDep) -> dict[str, Any]:
     """Record a new placement."""
     placement_id = str(uuid.uuid4())
 
@@ -98,7 +100,7 @@ async def update_placement(
     placement_id: str,
     body: PlacementUpdate,
     postgres: PostgresDep,
-) -> dict:
+) -> dict[str, Any]:
     """Update placement status (verify/reject)."""
     updates = []
     params = []

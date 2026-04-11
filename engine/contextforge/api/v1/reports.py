@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -20,10 +21,10 @@ router = APIRouter(prefix="/reports")
 async def dashboard_metrics(
     postgres: PostgresDep,
     programme_id: str | None = None,
-) -> dict:
+) -> dict[str, Any]:
     """Real-time programme KPI metrics for coordinator dashboard."""
     where = ""
-    params: list = []
+    params: list[Any] = []
     if programme_id:
         where = "WHERE programme_id::text = $1"
         params = [programme_id]
@@ -68,7 +69,7 @@ async def dashboard_metrics(
 
 
 @router.get("/at-risk")
-async def at_risk_trainees(postgres: PostgresDep) -> dict:
+async def at_risk_trainees(postgres: PostgresDep) -> dict[str, Any]:
     """Identify trainees at risk of non-completion or non-placement."""
     # Trainees completed >3 months ago without placement
     rows = await postgres.fetch(
@@ -97,7 +98,7 @@ async def at_risk_trainees(postgres: PostgresDep) -> dict:
 
 
 @router.get("/placement-funnel")
-async def placement_funnel(postgres: PostgresDep) -> dict:
+async def placement_funnel(postgres: PostgresDep) -> dict[str, Any]:
     """Placement pipeline funnel data."""
     status_rows = await postgres.fetch(
         "SELECT status, count(*) as cnt FROM trainees GROUP BY status ORDER BY status",
@@ -115,7 +116,7 @@ async def placement_funnel(postgres: PostgresDep) -> dict:
     return {"funnel": funnel}
 
 
-async def _ssg_data(postgres: PostgresDep) -> tuple[list[dict], list[dict]]:
+async def _ssg_data(postgres: PostgresDep) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     programmes = await postgres.fetch(
         "SELECT * FROM programmes WHERE active = true", []
     )
@@ -134,13 +135,13 @@ async def _ssg_data(postgres: PostgresDep) -> tuple[list[dict], list[dict]]:
     return [dict(p) for p in programmes], [dict(m) for m in metrics]
 
 
-def _write_ssg_workbook(programmes: list[dict], metrics: list[dict]) -> bytes:
+def _write_ssg_workbook(programmes: list[dict[str, Any]], metrics: list[dict[str, Any]]) -> bytes:
     wb = Workbook()
     header_font = Font(bold=True, color="FFFFFF")
     header_fill = PatternFill("solid", fgColor="4F46E5")
     center = Alignment(horizontal="center", vertical="center")
 
-    def _autosize(ws) -> None:
+    def _autosize(ws: Any) -> None:
         for col_cells in ws.columns:
             length = max((len(str(c.value)) if c.value is not None else 0)
                          for c in col_cells)
@@ -150,6 +151,7 @@ def _write_ssg_workbook(programmes: list[dict], metrics: list[dict]) -> bytes:
 
     # Sheet 1 — Cover
     cover = wb.active
+    assert cover is not None
     cover.title = "Cover"
     cover["A1"] = "SSG Monthly Compliance Report"
     cover["A1"].font = Font(bold=True, size=16)
@@ -181,7 +183,7 @@ def _write_ssg_workbook(programmes: list[dict], metrics: list[dict]) -> bytes:
             for j, c in enumerate(cols, 1):
                 v = p.get(c)
                 ws.cell(row=i, column=j,
-                        value=v.isoformat() if hasattr(v, "isoformat") else v)
+                        value=v.isoformat() if hasattr(v, "isoformat") else v)  # type: ignore[union-attr]
         _autosize(ws)
 
     # Sheet 3 — Metrics

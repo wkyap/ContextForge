@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 # ── Budget check node ─────────────────────────────────────────────────────────
 
-async def budget_check(state: AgentState) -> dict:
+async def budget_check(state: AgentState) -> dict[str, Any]:
     """Check if we've exceeded budget limits."""
     max_tokens = 100_000
     max_cost = state.get("budget_limit", 5.0)
@@ -46,7 +46,7 @@ async def budget_check(state: AgentState) -> dict:
 
 # ── Context check node ────────────────────────────────────────────────────────
 
-async def context_check(state: AgentState) -> dict:
+async def context_check(state: AgentState) -> dict[str, Any]:
     """Compact context if it grows past the soft limit.
 
     The context window is approximated by summing the lengths of every value
@@ -66,7 +66,7 @@ async def context_check(state: AgentState) -> dict:
 
     # Preserve a small allowlist of essential keys; drop the rest oldest-first.
     essential = {"query", "messages", "facts", "resolved_entities"}
-    trimmed: dict = {k: v for k, v in ctx.items() if k in essential}
+    trimmed: dict[str, Any] = {k: v for k, v in ctx.items() if k in essential}
     logger.info(
         "context_check: compacted context %d → %d chars (dropped %d keys)",
         total,
@@ -78,7 +78,7 @@ async def context_check(state: AgentState) -> dict:
 
 # ── Guardrails check node ────────────────────────────────────────────────────
 
-async def guardrails_check(state: AgentState) -> dict:
+async def guardrails_check(state: AgentState) -> dict[str, Any]:
     """Validate agent output against the production guardrails layer."""
     # Pick the latest specialist output (action > analysis > retrieval).
     output_text = ""
@@ -125,14 +125,14 @@ async def guardrails_check(state: AgentState) -> dict:
 
 # ── Human review gate ─────────────────────────────────────────────────────────
 
-async def human_review_gate(state: AgentState) -> dict:
+async def human_review_gate(state: AgentState) -> dict[str, Any]:
     """Human-in-the-loop gate — graph pauses here via interrupt_before."""
     return {}
 
 
 # ── Error recovery node ──────────────────────────────────────────────────────
 
-async def error_recovery(state: AgentState) -> dict:
+async def error_recovery(state: AgentState) -> dict[str, Any]:
     """Handle errors and decide: retry, fallback, or escalate."""
     retry_count = state.get("retry_count", 0)
 
@@ -203,7 +203,7 @@ def route_guardrails(state: AgentState) -> str:
 
 # ── Graph builder ─────────────────────────────────────────────────────────────
 
-def build_production_graph() -> StateGraph:
+def build_production_graph() -> StateGraph[AgentState]:
     """Construct the full multi-agent orchestration graph.
 
     Structure:
@@ -278,7 +278,7 @@ def build_production_graph() -> StateGraph:
 
 # ── Compiled graph factory ────────────────────────────────────────────────────
 
-async def create_agent(settings: Settings) -> tuple[CompiledStateGraph, Any]:
+async def create_agent(settings: Settings) -> tuple[CompiledStateGraph[AgentState], Any]:
     """Return a compiled production agent graph with Postgres checkpointing.
 
     Returns ``(compiled_graph, checkpointer_context)`` — caller must keep
@@ -300,7 +300,7 @@ async def create_agent(settings: Settings) -> tuple[CompiledStateGraph, Any]:
 # ── Convenience runner ────────────────────────────────────────────────────────
 
 async def run_agent_chat(
-    agent: CompiledStateGraph,
+    agent: CompiledStateGraph[AgentState],
     message: str,
     *,
     thread_id: str | None = None,
@@ -312,14 +312,14 @@ async def run_agent_chat(
     Returns ``(response_text, thread_id)``.
     """
     thread_id = thread_id or str(uuid.uuid4())
-    result = await agent.ainvoke(
+    result = await agent.ainvoke(  # type: ignore[call-overload]
         _initial_state(message, thread_id, domain, user_id),
         config={"configurable": {"thread_id": thread_id}},
     )
     return _format_response(result), thread_id
 
 
-def _initial_state(message: str, thread_id: str, domain: str, user_id: str) -> dict:
+def _initial_state(message: str, thread_id: str, domain: str, user_id: str) -> dict[str, Any]:
     return {
         "messages": [{"role": "user", "content": message}],
         "query": message,
@@ -373,7 +373,7 @@ def _format_response(result: dict[str, Any]) -> str:
 
 
 async def run_agent_chat_streaming(
-    agent: CompiledStateGraph,
+    agent: CompiledStateGraph[AgentState],
     message: str,
     *,
     thread_id: str | None = None,
@@ -392,7 +392,7 @@ async def run_agent_chat_streaming(
     final_state: dict[str, Any] = {}
 
     try:
-        async for event in agent.astream(state, config=config, stream_mode="updates"):
+        async for event in agent.astream(state, config=config, stream_mode="updates"):  # type: ignore[call-overload]
             # `event` is {node_name: state_delta}
             for node_name, delta in event.items():
                 if not isinstance(delta, dict):

@@ -94,7 +94,7 @@ class GuardrailGenerator:
             logger.error("Failed to parse guardrail generation response")
             return []
 
-        guardrails = data.get("guardrails", [])
+        guardrails: list[dict[str, Any]] = data.get("guardrails", [])
         detected = data.get("detected_frameworks", [])
 
         if detected:

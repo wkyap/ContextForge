@@ -94,7 +94,7 @@ class TemplateGenerator:
             logger.error("Failed to parse template generation response")
             return []
 
-        templates = data.get("templates", [])
+        templates: list[dict[str, Any]] = data.get("templates", [])
 
         logger.info(
             "Generated %d agent templates for domain '%s'",

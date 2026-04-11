@@ -58,7 +58,7 @@ class SchemaFreeExtractor:
 
         raw = response.choices[0].message.content or "{}"
         try:
-            result = json.loads(raw)
+            result: dict[str, Any] = json.loads(raw)
         except json.JSONDecodeError:
             logger.warning("Schema-free extraction returned invalid JSON")
             result = {"entities": [], "relationships": []}

@@ -93,7 +93,7 @@ class ExcelIngester(BaseIngester):
         return True
 
     async def ingest(self, data: Any) -> IngestResult:
-        rows: list[dict] = data
+        rows: list[dict[str, Any]] = data
         if self._sheet_type == "trainees":
             return await self._ingest_trainees(rows)
         elif self._sheet_type == "courses":
@@ -103,7 +103,7 @@ class ExcelIngester(BaseIngester):
         else:
             return IngestResult(errors=[f"Unknown sheet type: {self._sheet_type}"])
 
-    async def _ingest_trainees(self, rows: list[dict]) -> IngestResult:
+    async def _ingest_trainees(self, rows: list[dict[str, Any]]) -> IngestResult:
         result = IngestResult()
         for row in rows:
             try:
@@ -145,7 +145,7 @@ class ExcelIngester(BaseIngester):
 
         return result
 
-    async def _ingest_courses(self, rows: list[dict]) -> IngestResult:
+    async def _ingest_courses(self, rows: list[dict[str, Any]]) -> IngestResult:
         result = IngestResult()
         for row in rows:
             try:
@@ -180,7 +180,7 @@ class ExcelIngester(BaseIngester):
 
         return result
 
-    async def _ingest_employers(self, rows: list[dict]) -> IngestResult:
+    async def _ingest_employers(self, rows: list[dict[str, Any]]) -> IngestResult:
         result = IngestResult()
         for row in rows:
             try:

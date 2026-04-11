@@ -31,8 +31,8 @@ class SkillCapability:
     instructions: str
     skill_type: str
     domain: str
-    inputs: list[dict] = field(default_factory=list)
-    outputs: list[dict] = field(default_factory=list)
+    inputs: list[dict[str, Any]] = field(default_factory=list)
+    outputs: list[dict[str, Any]] = field(default_factory=list)
     mcp_server: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 

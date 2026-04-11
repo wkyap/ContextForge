@@ -79,7 +79,7 @@ class ConnectorBase(abc.ABC):
         """Yield records from the source. Should run until cancelled."""
         # The yield is here so type checkers see this as an async generator.
         if False:  # pragma: no cover
-            yield  # type: ignore[unreachable]
+            yield  # pragma: unreachable
 
     @abc.abstractmethod
     async def close(self) -> None:

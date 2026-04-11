@@ -73,13 +73,13 @@ class EntityResolver:
                 "vector_score": 0.0,
             }
         for pt in qdrant_results.points:
-            eid = pt.payload.get("entity_id", "")
+            eid = (pt.payload or {}).get("entity_id", "")
             if eid in candidates:
                 candidates[eid]["vector_score"] = pt.score
             else:
                 candidates[eid] = {
                     "id": eid,
-                    "name": pt.payload.get("entity_name", ""),
+                    "name": (pt.payload or {}).get("entity_name", ""),
                     "neo4j_score": 0.0,
                     "vector_score": pt.score,
                 }

@@ -133,7 +133,7 @@ class FHIRIngester:
     def _get_identifier(resource: dict[str, Any], type_code: str) -> str:
         for ident in resource.get("identifier", []):
             if (ident.get("type", {}).get("coding") or [{}])[0].get("code") == type_code:
-                return ident.get("value", "")
+                return str(ident.get("value", ""))
         return ""
 
     @staticmethod
@@ -142,5 +142,5 @@ class FHIRIngester:
         if cats:
             codings = cats[0].get("coding", [])
             if codings:
-                return codings[0].get("code", "")
+                return str(codings[0].get("code", ""))
         return ""

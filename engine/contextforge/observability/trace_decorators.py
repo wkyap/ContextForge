@@ -29,14 +29,14 @@ def _make_trace_id() -> str:
 
 # ── Agent-level trace (top-level run) ─────────────────────────────────────────
 
-def trace_agent(name: str) -> Callable:
+def trace_agent(name: str) -> Callable[..., Any]:
     """Create a top-level Langfuse trace for an agent invocation."""
 
-    def decorator(fn: Callable) -> Callable:
+    def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(fn)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
             langfuse = get_langfuse()
-            trace = langfuse.trace(
+            trace = langfuse.trace(  # type: ignore[attr-defined]
                 id=_make_trace_id(),
                 name=name,
                 metadata={"function": fn.__qualname__},
@@ -60,10 +60,10 @@ def trace_agent(name: str) -> Callable:
 
 # ── Span (sub-step within a trace) ────────────────────────────────────────────
 
-def trace_span(name: str) -> Callable:
+def trace_span(name: str) -> Callable[..., Any]:
     """Create a Langfuse span for a sub-step.  Expects ``_trace`` in kwargs."""
 
-    def decorator(fn: Callable) -> Callable:
+    def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(fn)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
             trace = kwargs.get("_trace")
@@ -90,10 +90,10 @@ def trace_span(name: str) -> Callable:
 
 # ── Tool call span ────────────────────────────────────────────────────────────
 
-def trace_tool(name: str) -> Callable:
+def trace_tool(name: str) -> Callable[..., Any]:
     """Create a Langfuse span tagged as a tool call."""
 
-    def decorator(fn: Callable) -> Callable:
+    def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(fn)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
             trace = kwargs.get("_trace")

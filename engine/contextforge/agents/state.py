@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import operator
-from typing import Annotated, TypedDict
+from typing import Annotated, Any, TypedDict
 
 
 class AgentState(TypedDict):
@@ -13,13 +13,13 @@ class AgentState(TypedDict):
     LangGraph node wrappers (see orchestrator.py, retrieval_agent.py, etc.).
     """
 
-    messages: Annotated[list, operator.add]
+    messages: Annotated[list[Any], operator.add]
     query: str
     domain: str
     user_id: str
     thread_id: str
-    resolved_entities: list[dict]
-    context: dict
+    resolved_entities: list[dict[str, Any]]
+    context: dict[str, Any]
     loaded_skills: list[str]
 
     # Budget tracking
@@ -30,15 +30,15 @@ class AgentState(TypedDict):
     tools_called: list[str]
 
     # Error tracking
-    errors: list[dict]
+    errors: list[dict[str, Any]]
     retry_count: int
     fallback_triggered: bool
 
     # Guardrails
-    guardrails_results: list[dict]
+    guardrails_results: list[dict[str, Any]]
 
     # PydanticAI structured outputs (carried in state for downstream nodes)
-    orchestrator_plan: dict | None
-    retrieval_result: dict | None
-    analysis_result: dict | None
-    action_result: dict | None
+    orchestrator_plan: dict[str, Any] | None
+    retrieval_result: dict[str, Any] | None
+    analysis_result: dict[str, Any] | None
+    action_result: dict[str, Any] | None

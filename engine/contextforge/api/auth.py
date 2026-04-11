@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Annotated
+from typing import Annotated, Any
 
 import httpx
 from fastapi import Depends, HTTPException, Request, status
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 _bearer = HTTPBearer(auto_error=False)
 
 # Cached JWKS (JSON Web Key Set) from Keycloak.
-_jwks_cache: dict | None = None
+_jwks_cache: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -47,7 +47,7 @@ _DEV_USER = UserIdentity(
 
 # ── JWKS fetcher ──────────────────────────────────────────────────────────────
 
-async def _fetch_jwks(issuer_url: str) -> dict:
+async def _fetch_jwks(issuer_url: str) -> dict[str, Any]:
     global _jwks_cache  # noqa: PLW0603
     if _jwks_cache is not None:
         return _jwks_cache

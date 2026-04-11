@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +80,7 @@ class CostTracker:
 
     # ── Summary ───────────────────────────────────────────────────────────
 
-    def summary(self) -> dict:
+    def summary(self) -> dict[str, Any]:
         return {
             "prompt_tokens": self.usage.prompt_tokens,
             "completion_tokens": self.usage.completion_tokens,

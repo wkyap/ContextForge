@@ -51,7 +51,7 @@ def _build_workflow_class() -> type:
     """Construct the workflow class only when temporalio is importable."""
     from datetime import timedelta
 
-    from temporalio import workflow  # type: ignore[import-not-found]
+    from temporalio import workflow
 
     @workflow.defn(name="PipelineDAGWorkflow")
     class PipelineDAGWorkflow:
@@ -113,7 +113,7 @@ def _build_workflow_class() -> type:
 
 
 def _build_activity() -> ActivityFn:
-    from temporalio import activity  # type: ignore[import-not-found]
+    from temporalio import activity
 
     @activity.defn(name="execute_pipeline_task")
     async def execute_pipeline_task(activity_name: str, kwargs: dict[str, Any]) -> Any:
@@ -138,7 +138,7 @@ async def run_worker(
     called. The worker runs until cancelled.
     """
     try:
-        from temporalio.worker import Worker  # type: ignore[import-not-found]
+        from temporalio.worker import Worker
     except ImportError as exc:
         raise RuntimeError(
             "temporalio is not installed. `pip install temporalio` to run a worker."

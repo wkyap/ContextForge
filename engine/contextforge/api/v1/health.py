@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import APIRouter
 
 from contextforge.api.deps import (
@@ -22,7 +24,7 @@ async def health_check(
     neo4j: Neo4jDep,
     qdrant: QdrantDep,
     redis: RedisDep,
-) -> dict:
+) -> dict[str, Any]:
     checks = {
         "postgres": await postgres.health_check(),
         "timescale": await timescale.health_check(),

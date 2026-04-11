@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import uuid
 
+from typing import Any
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
@@ -31,7 +33,7 @@ async def list_openings(
     sector: str | None = None,
     limit: int = 50,
     offset: int = 0,
-) -> dict:
+) -> dict[str, Any]:
     """List job openings."""
     rows = await postgres.fetch(
         """SELECT o.id, o.role_title, o.required_skills, o.preferred_skills,
@@ -47,7 +49,7 @@ async def list_openings(
 
 
 @router.get("/{opening_id}")
-async def get_opening(opening_id: str, postgres: PostgresDep) -> dict:
+async def get_opening(opening_id: str, postgres: PostgresDep) -> dict[str, Any]:
     """Get a single job opening."""
     row = await postgres.fetch_one(
         """SELECT o.*, e.company_name, e.sector as employer_sector
@@ -62,7 +64,7 @@ async def get_opening(opening_id: str, postgres: PostgresDep) -> dict:
 
 
 @router.post("", status_code=201)
-async def create_opening(body: OpeningCreate, postgres: PostgresDep) -> dict:
+async def create_opening(body: OpeningCreate, postgres: PostgresDep) -> dict[str, Any]:
     """Post a new job opening."""
     opening_id = str(uuid.uuid4())
 
@@ -86,7 +88,7 @@ async def get_opening_matches(
     opening_id: str,
     postgres: PostgresDep,
     limit: int = 20,
-) -> dict:
+) -> dict[str, Any]:
     """Get AI-ranked trainee matches for a job opening."""
     # Return cached matching results if they exist
     rows = await postgres.fetch(

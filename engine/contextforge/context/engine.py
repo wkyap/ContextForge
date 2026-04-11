@@ -135,7 +135,7 @@ class ContextEngine:
                 limit=15,
             )
             return [
-                {**pt.payload, "score": pt.score}
+                {**(pt.payload or {}), "score": pt.score}
                 for pt in results.points
             ]
         except Exception:
@@ -176,7 +176,7 @@ class ContextEngine:
                 limit=5,
             )
             return [
-                {**pt.payload, "score": pt.score}
+                {**(pt.payload or {}), "score": pt.score}
                 for pt in results.points
             ]
         except Exception:

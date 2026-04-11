@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 logger = logging.getLogger(__name__)
 
 # Singapore-specific PII patterns
-_SG_PATTERNS: dict[str, re.Pattern] = {
+_SG_PATTERNS: dict[str, re.Pattern[str]] = {
     "sg_nric": re.compile(r"\b[STFGM]\d{7}[A-Z]\b"),
     "sg_phone": re.compile(r"\b[689]\d{7}\b"),
     "sg_phone_prefix": re.compile(r"\b\+65\s?[689]\d{7}\b"),
@@ -24,7 +24,7 @@ _SG_PATTERNS: dict[str, re.Pattern] = {
 }
 
 # Masking formats per PII type
-_MASK_FORMATS: dict[str, str] = {
+_MASK_FORMATS: dict[str, str | None] = {
     "sg_nric": "****{last4}",
     "sg_phone": "****{last4}",
     "sg_phone_prefix": "+65 ****{last4}",

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import uuid
 
+from typing import Any
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
@@ -36,10 +38,10 @@ async def list_courses(
     mode: str | None = None,
     limit: int = 50,
     offset: int = 0,
-) -> dict:
+) -> dict[str, Any]:
     """List courses with optional filters."""
-    conditions = []
-    params: list = []
+    conditions: list[str] = []
+    params: list[Any] = []
     idx = 1
 
     if sector:
@@ -72,7 +74,7 @@ async def list_courses(
 
 
 @router.get("/{course_id}")
-async def get_course(course_id: str, postgres: PostgresDep) -> dict:
+async def get_course(course_id: str, postgres: PostgresDep) -> dict[str, Any]:
     """Get a single course by ID or course_code."""
     row = await postgres.fetch_one(
         "SELECT * FROM courses WHERE id::text = $1 OR course_code = $1",
@@ -88,7 +90,7 @@ async def create_course(
     body: CourseCreate,
     postgres: PostgresDep,
     neo4j: Neo4jDep,
-) -> dict:
+) -> dict[str, Any]:
     """Create a new course."""
     course_id = str(uuid.uuid4())
 

@@ -197,7 +197,7 @@ def test_pdpa_nric_detection() -> None:
 
     text = "Trainee NRIC is S1234567A and phone is 91234567."
     findings = detect_pdpa_pii(text)
-    types = {f["type"] for f in findings}
+    types = {f["type"] for f in findings.detections}
     assert "sg_nric" in types
     assert "sg_phone" in types
 

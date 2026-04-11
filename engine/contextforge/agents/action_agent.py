@@ -43,7 +43,7 @@ def _estimate_cost(usage: Any) -> float:
 
 # ── LangGraph node wrapper ────────────────────────────────────────────────────
 
-async def action_node(state: AgentState) -> dict:
+async def action_node(state: AgentState) -> dict[str, Any]:
     """LangGraph node wrapping the PydanticAI action specialist."""
     deps = AgentDeps(
         domain=state.get("domain", "industrial"),

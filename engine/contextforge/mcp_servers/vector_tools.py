@@ -58,7 +58,7 @@ class VectorTools:
                 limit=args.get("limit", 5),
             )
             return [
-                {**pt.payload, "score": pt.score}
+                {**(pt.payload or {}), "score": pt.score}
                 for pt in results.points
             ]
         elif tool_name == "find_similar_entities":
@@ -69,7 +69,7 @@ class VectorTools:
                 limit=args.get("limit", 5),
             )
             return [
-                {**pt.payload, "score": pt.score}
+                {**(pt.payload or {}), "score": pt.score}
                 for pt in results.points
             ]
         raise ValueError(f"Unknown tool: {tool_name}")

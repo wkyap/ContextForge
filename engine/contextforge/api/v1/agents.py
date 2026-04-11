@@ -43,7 +43,7 @@ async def agent_chat(body: ChatRequest, request: Request) -> ChatResponse:
 # ── Agent templates ──────────────────────────────────────────────────────────
 
 @router.get("/templates")
-async def list_agent_templates(request: Request) -> list[dict]:
+async def list_agent_templates(request: Request) -> list[dict[str, Any]]:
     """List SKILL.md files of type 'template'."""
     registry = request.app.state.skill_registry
     templates = [
