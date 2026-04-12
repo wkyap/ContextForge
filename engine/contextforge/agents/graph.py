@@ -306,17 +306,26 @@ async def run_agent_chat(
     thread_id: str | None = None,
     domain: str = "industrial",
     user_id: str = "anonymous",
-) -> tuple[str, str]:
+    budget_limit: float = 5.0,
+) -> tuple[str, str, dict[str, float]]:
     """Send a user message through the production agent graph.
 
-    Returns ``(response_text, thread_id)``.
+    Returns ``(response_text, thread_id, usage)`` where ``usage`` is
+    ``{"tokens": int, "cost_usd": float}`` extracted from the final state
+    so callers can record per-tenant usage.
     """
     thread_id = thread_id or str(uuid.uuid4())
+    initial = _initial_state(message, thread_id, domain, user_id)
+    initial["budget_limit"] = budget_limit
     result = await agent.ainvoke(  # type: ignore[call-overload]
-        _initial_state(message, thread_id, domain, user_id),
+        initial,
         config={"configurable": {"thread_id": thread_id}},
     )
-    return _format_response(result), thread_id
+    usage = {
+        "tokens": float(result.get("total_tokens_used", 0) or 0),
+        "cost_usd": float(result.get("total_cost_usd", 0.0) or 0.0),
+    }
+    return _format_response(result), thread_id, usage
 
 
 def _initial_state(message: str, thread_id: str, domain: str, user_id: str) -> dict[str, Any]:
@@ -379,15 +388,18 @@ async def run_agent_chat_streaming(
     thread_id: str | None = None,
     domain: str = "industrial",
     user_id: str = "anonymous",
+    budget_limit: float = 5.0,
 ) -> AsyncIterator[dict[str, Any]]:
     """Stream per-node state updates as the agent graph executes.
 
     Yields dicts with keys ``type`` (one of ``"node"``, ``"done"``, ``"error"``),
     ``thread_id``, and node-specific payload. The final ``done`` event carries
-    the formatted ``response`` string.
+    the formatted ``response`` string and a ``usage`` dict so the caller can
+    record per-tenant cost telemetry.
     """
     thread_id = thread_id or str(uuid.uuid4())
     state = _initial_state(message, thread_id, domain, user_id)
+    state["budget_limit"] = budget_limit
     config: Any = {"configurable": {"thread_id": thread_id}}
     final_state: dict[str, Any] = {}
 
@@ -413,4 +425,8 @@ async def run_agent_chat_streaming(
         "type": "done",
         "thread_id": thread_id,
         "response": _format_response(final_state),
+        "usage": {
+            "tokens": int(final_state.get("total_tokens_used", 0) or 0),
+            "cost_usd": float(final_state.get("total_cost_usd", 0.0) or 0.0),
+        },
     }

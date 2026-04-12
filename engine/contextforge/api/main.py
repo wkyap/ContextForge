@@ -39,6 +39,7 @@ from contextforge.api.v1 import (
 from contextforge.config import get_settings
 from contextforge.connectors.base import LoggingSink
 from contextforge.connectors.config_repo import ConnectorConfigRepo
+from contextforge.connectors.dlq import DLQRepository
 from contextforge.connectors.runtime import ConnectorSupervisor
 from contextforge.connectors.sinks import CompositeSink, KGSink, TimescaleSink, VectorSink
 from contextforge.db.migrations import run_all_migrations
@@ -125,7 +126,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     composite_sink = CompositeSink(
         kg=kg_sink, timescale=ts_sink, vector=vec_sink, fallback=log_sink,
     )
-    connector_supervisor = ConnectorSupervisor(sink=composite_sink)
+    dlq_repo = DLQRepository(postgres)
+    connector_supervisor = ConnectorSupervisor(sink=composite_sink, dlq=dlq_repo)
+    app.state.connector_dlq = dlq_repo
     # Register named sinks so persisted connector configs can pick one via `sink`.
     connector_supervisor.register_sink("kg", kg_sink)
     connector_supervisor.register_sink("timescale", ts_sink)

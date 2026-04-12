@@ -7,7 +7,14 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
-from contextforge.connectors.base import ConnectorBase, ConnectorStatus, LoggingSink, Sink
+from contextforge.connectors.base import (
+    ConnectorBase,
+    ConnectorStatus,
+    LoggingSink,
+    Record,
+    Sink,
+)
+from contextforge.connectors.dlq import DLQRepository
 from contextforge.connectors.registry import get_connector_registry
 
 logger = logging.getLogger(__name__)
@@ -27,12 +34,19 @@ class ConnectorSupervisor:
     connectors pick a target by name (e.g. ``sink="kg"``).
     """
 
-    def __init__(self, sink: Sink | None = None) -> None:
+    def __init__(
+        self,
+        sink: Sink | None = None,
+        *,
+        dlq: DLQRepository | None = None,
+    ) -> None:
         self._sink: Sink = sink or LoggingSink()
         self._sinks_by_name: dict[str, Sink] = {}
         self._sink_for_connector: dict[str, Sink] = {}
+        self._sink_name_for_connector: dict[str, str] = {}
         self._running: dict[str, _RunningConnector] = {}
         self._lock = asyncio.Lock()
+        self._dlq = dlq
 
     def register_sink(self, name: str, sink: Sink) -> None:
         """Make `sink` available for per-connector override via `sink_name`."""
@@ -69,6 +83,7 @@ class ConnectorSupervisor:
             connector = get_connector_registry().instantiate(source_kind, name, config)
             if sink_name is not None:
                 self._sink_for_connector[name] = self._sinks_by_name[sink_name]
+                self._sink_name_for_connector[name] = sink_name
             connector._status = ConnectorStatus.STARTING  # noqa: SLF001
             try:
                 await connector.connect()
@@ -87,6 +102,7 @@ class ConnectorSupervisor:
         async with self._lock:
             entry = self._running.pop(name, None)
             self._sink_for_connector.pop(name, None)
+            self._sink_name_for_connector.pop(name, None)
         if entry is None:
             raise KeyError(f"Connector '{name}' is not running")
         entry.connector._status = ConnectorStatus.STOPPING  # noqa: SLF001
@@ -176,16 +192,38 @@ class ConnectorSupervisor:
 
     async def _run(self, connector: ConnectorBase) -> None:
         sink = self._sink_for_connector.get(connector.name, self._sink)
+        sink_label = self._sink_name_for_connector.get(connector.name)
         try:
             async for record in connector.stream():
                 connector._mark_emitted()  # noqa: SLF001
                 try:
                     await sink.write(record)
-                except Exception:
+                except Exception as sink_exc:
                     logger.exception("Sink failed for record from %s", connector.name)
+                    await self._dead_letter(connector.name, sink_label, record, str(sink_exc))
         except asyncio.CancelledError:
             raise
         except Exception as exc:
             connector._status = ConnectorStatus.ERROR  # noqa: SLF001
             connector._last_error = str(exc)  # noqa: SLF001
             logger.exception("Connector %s stream crashed", connector.name)
+
+    async def _dead_letter(
+        self,
+        connector_name: str,
+        sink_name: str | None,
+        record: Record,
+        error: str,
+    ) -> None:
+        """Push a failed record to the DLQ if one is configured."""
+        if self._dlq is None:
+            return
+        try:
+            await self._dlq.write(
+                connector_name=connector_name,
+                record=record,
+                error=error,
+                sink_name=sink_name,
+            )
+        except Exception:
+            logger.exception("DLQ write itself failed for %s", connector_name)

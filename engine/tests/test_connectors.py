@@ -9,14 +9,14 @@ These tests do NOT require Postgres/Neo4j/Qdrant/MQTT/Kafka. They cover:
 
 from __future__ import annotations
 
+import asyncio
+from collections.abc import AsyncIterator
 from typing import Any
 
 import pytest
 
-import asyncio
-from collections.abc import AsyncIterator
-
 from contextforge.connectors.base import ConnectorBase, LoggingSink, Record, Sink
+from contextforge.connectors.dlq import DLQRepository
 from contextforge.connectors.registry import get_connector_registry
 from contextforge.connectors.runtime import ConnectorSupervisor
 from contextforge.connectors.sinks import CompositeSink, FanOutSink, VectorSink
@@ -329,3 +329,125 @@ async def test_logging_sink_counts_records() -> None:
     await sink.write(Record(payload={"x": 1}, source="t"))
     await sink.write(Record(payload={"x": 2}, source="t"))
     assert sink.count == 2
+
+
+# ── Dead-letter queue ────────────────────────────────────────────────────────
+
+
+class StubDLQ:
+    """Captures DLQ writes without hitting Postgres."""
+
+    def __init__(self) -> None:
+        self.writes: list[dict[str, Any]] = []
+
+    async def write(
+        self,
+        *,
+        connector_name: str,
+        record: Record,
+        error: str,
+        sink_name: str | None = None,
+    ) -> None:
+        self.writes.append({
+            "connector_name": connector_name,
+            "sink_name": sink_name,
+            "source": record.source,
+            "payload": record.payload,
+            "error": error,
+        })
+
+
+@pytest.mark.asyncio
+async def test_supervisor_routes_sink_failures_to_dlq() -> None:
+    """A sink that raises should land its record in the DLQ."""
+    dlq = StubDLQ()
+    sup = ConnectorSupervisor(sink=FailingSink(), dlq=dlq)  # type: ignore[arg-type]
+    await sup.start("crashy", "fake", {"emit": 2})
+    for _ in range(50):
+        if len(dlq.writes) >= 2:
+            break
+        await asyncio.sleep(0.01)
+    await sup.shutdown()
+    assert len(dlq.writes) == 2
+    assert all(w["connector_name"] == "crashy" for w in dlq.writes)
+    assert all("boom" in w["error"] for w in dlq.writes)
+
+
+@pytest.mark.asyncio
+async def test_supervisor_dlq_records_named_sink_override() -> None:
+    """DLQ rows should know which named sink originally rejected the record."""
+    dlq = StubDLQ()
+    sup = ConnectorSupervisor(sink=CapturingSink(), dlq=dlq)  # type: ignore[arg-type]
+    sup.register_sink("badalt", FailingSink())
+    await sup.start("c1", "fake", {"emit": 1}, sink_name="badalt")
+    for _ in range(50):
+        if dlq.writes:
+            break
+        await asyncio.sleep(0.01)
+    await sup.shutdown()
+    assert dlq.writes
+    assert dlq.writes[0]["sink_name"] == "badalt"
+
+
+@pytest.mark.asyncio
+async def test_supervisor_without_dlq_does_not_crash_on_sink_failure() -> None:
+    """Supervisor should keep streaming even when no DLQ is configured."""
+    sup = ConnectorSupervisor(sink=FailingSink())  # type: ignore[arg-type]
+    await sup.start("c1", "fake", {"emit": 3})
+    # Give it time — no records should be captured but the loop must not crash.
+    await asyncio.sleep(0.05)
+    assert sup.get("c1") is not None
+    await sup.shutdown()
+
+
+class FakePostgres:
+    """In-memory stand-in for the Postgres client used by DLQRepository."""
+
+    def __init__(self) -> None:
+        self.executed: list[tuple[str, list[Any]]] = []
+        self.fail_writes = False
+
+    async def execute(self, sql: str, params: list[Any] | None = None) -> None:
+        if self.fail_writes:
+            raise RuntimeError("postgres down")
+        self.executed.append((sql, params or []))
+
+
+@pytest.mark.asyncio
+async def test_dlq_repository_write_persists_record() -> None:
+    pg = FakePostgres()
+    repo = DLQRepository(pg)
+    rec = Record(
+        payload={"id": 1, "value": 99},
+        source="fake://x",
+        timestamp=1234.5,
+        metadata={"k": "v"},
+    )
+    await repo.write(
+        connector_name="my-connector",
+        record=rec,
+        error="boom",
+        sink_name="kg",
+    )
+    assert len(pg.executed) == 1
+    sql, params = pg.executed[0]
+    assert "INSERT INTO connector_dlq" in sql
+    assert params[0] == "my-connector"
+    assert params[1] == "kg"
+    assert params[2] == "fake://x"
+    assert params[5] == "boom"
+    assert params[6] == 1234.5
+
+
+@pytest.mark.asyncio
+async def test_dlq_repository_write_swallows_postgres_failure() -> None:
+    """DLQ writes must never crash the ingestion loop."""
+    pg = FakePostgres()
+    pg.fail_writes = True
+    repo = DLQRepository(pg)
+    # Should NOT raise.
+    await repo.write(
+        connector_name="x",
+        record=Record(payload={}, source="t"),
+        error="e",
+    )

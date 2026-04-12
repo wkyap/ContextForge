@@ -227,18 +227,36 @@ class TemporalGraph:
     # ── Fulltext search ───────────────────────────────────────────────────
 
     async def fulltext_search(
-        self, query: str, *, limit: int = 10
+        self, query: str, *, limit: int = 10, tenant_id: str | None = None
     ) -> list[dict[str, Any]]:
-        """Search entities using the full-text index."""
-        result = await self._neo4j.execute_cypher(
-            """
+        """Search entities using the full-text index.
+
+        If ``tenant_id`` is supplied, results are restricted to entities
+        owned by that tenant or to legacy entities with no ``_tenant_id``
+        property (so existing single-tenant data stays visible to every
+        tenant). Pass ``None`` to disable scoping.
+        """
+        if tenant_id is None:
+            cypher = """
             CALL db.index.fulltext.queryNodes('entity_fulltext', $query)
             YIELD node, score
             WHERE node._is_current = true
             RETURN node {.*} AS entity, score
             ORDER BY score DESC
             LIMIT $limit
-            """,
-            {"query": query, "limit": limit},
-        )
+            """
+            params: dict[str, Any] = {"query": query, "limit": limit}
+        else:
+            cypher = """
+            CALL db.index.fulltext.queryNodes('entity_fulltext', $query)
+            YIELD node, score
+            WHERE node._is_current = true
+              AND (node._tenant_id = $tenant_id OR node._tenant_id IS NULL)
+            RETURN node {.*} AS entity, score
+            ORDER BY score DESC
+            LIMIT $limit
+            """
+            params = {"query": query, "limit": limit, "tenant_id": tenant_id}
+
+        result = await self._neo4j.execute_cypher(cypher, params)
         return result

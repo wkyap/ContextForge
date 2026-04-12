@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from contextforge.connectors.config_repo import ConnectorConfig, ConnectorConfigRepo
+from contextforge.connectors.dlq import DLQRepository
 from contextforge.connectors.registry import get_connector_registry
 
 router = APIRouter(prefix="/connectors")
@@ -145,3 +146,101 @@ async def get_connector(request: Request, name: str) -> dict[str, Any]:
         "config": connector.config,
         "health": connector.health().__dict__,
     }
+
+
+# ── Dead-letter queue ────────────────────────────────────────────────────────
+
+
+def _dlq(request: Request) -> DLQRepository:
+    dlq = getattr(request.app.state, "connector_dlq", None)
+    if dlq is None:
+        raise HTTPException(status_code=503, detail="DLQ not configured")
+    return dlq  # type: ignore[no-any-return]
+
+
+@router.get("/dlq/entries")
+async def list_dlq_entries(
+    request: Request,
+    connector_name: str | None = None,
+    status: str = "pending",
+    limit: int = 100,
+    offset: int = 0,
+) -> dict[str, Any]:
+    """List dead-letter rows, newest first. Default filter is ``status=pending``."""
+    entries = await _dlq(request).list_entries(
+        connector_name=connector_name,
+        status=status if status != "all" else None,
+        limit=limit,
+        offset=offset,
+    )
+    return {
+        "total_pending": await _dlq(request).count(connector_name=connector_name),
+        "entries": [
+            {
+                "id": e.id,
+                "connector_name": e.connector_name,
+                "sink_name": e.sink_name,
+                "source": e.source,
+                "payload": e.payload,
+                "metadata": e.metadata,
+                "error": e.error,
+                "record_ts": e.record_ts,
+                "failed_at": e.failed_at,
+                "status": e.status,
+                "replayed_at": e.replayed_at,
+            }
+            for e in entries
+        ],
+    }
+
+
+@router.post("/dlq/entries/{entry_id}/replay")
+async def replay_dlq_entry(request: Request, entry_id: int) -> dict[str, Any]:
+    """Re-write a dead-letter row to the same sink it originally targeted.
+
+    Marks the row ``replayed`` on success or leaves it ``pending`` on failure.
+    """
+    dlq = _dlq(request)
+    entries = await dlq.list_entries(status=None, limit=1, offset=0)
+    target = next((e for e in entries if e.id == entry_id), None)
+    if target is None:
+        # Fall back to scanning more pages — small DLQs are fine but be defensive.
+        page = 0
+        while target is None:
+            page += 1
+            if page > 50:
+                raise HTTPException(status_code=404, detail="DLQ entry not found")
+            batch = await dlq.list_entries(status=None, limit=100, offset=page * 100)
+            if not batch:
+                raise HTTPException(status_code=404, detail="DLQ entry not found")
+            target = next((e for e in batch if e.id == entry_id), None)
+
+    supervisor = request.app.state.connector_supervisor
+    sink = None
+    if target.sink_name and target.sink_name in supervisor._sinks_by_name:  # noqa: SLF001
+        sink = supervisor._sinks_by_name[target.sink_name]  # noqa: SLF001
+    else:
+        sink = supervisor._sink  # noqa: SLF001
+
+    from contextforge.connectors.base import Record
+
+    record = Record(
+        payload=target.payload,
+        source=target.source or target.connector_name,
+        timestamp=target.record_ts or 0.0,
+        metadata=target.metadata,
+    )
+    try:
+        await sink.write(record)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Replay failed: {exc}") from exc
+
+    await dlq.mark_status(entry_id, "replayed")
+    return {"id": entry_id, "status": "replayed"}
+
+
+@router.post("/dlq/entries/{entry_id}/ignore")
+async def ignore_dlq_entry(request: Request, entry_id: int) -> dict[str, Any]:
+    """Mark a DLQ row as not-recoverable."""
+    await _dlq(request).mark_status(entry_id, "ignored")
+    return {"id": entry_id, "status": "ignored"}

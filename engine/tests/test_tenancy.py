@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import base64
+import json
+
 from contextforge.tenancy.budget import BudgetStatus
 from contextforge.tenancy.context import (
     DEFAULT_TENANT,
@@ -10,6 +13,7 @@ from contextforge.tenancy.context import (
     get_current_tenant,
     set_current_tenant,
 )
+from contextforge.tenancy.middleware import _decode_jwt_payload
 
 # ── TenantContext ────────────────────────────────────────────────────────────
 
@@ -123,3 +127,48 @@ def test_budget_to_dict() -> None:
     assert d["cost_usd"]["remaining"] == 7.0
     assert d["requests"]["remaining"] == 40
     assert d["over_budget"] is False
+
+
+# ── JWT payload decoder ──────────────────────────────────────────────────────
+
+
+def _make_jwt(payload: dict[str, object]) -> str:
+    """Build a fake unsigned JWT for testing the payload decoder."""
+    def _b64(data: bytes) -> str:
+        return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
+
+    header = _b64(b'{"alg":"none","typ":"JWT"}')
+    body = _b64(json.dumps(payload).encode())
+    return f"{header}.{body}.signature"
+
+
+def test_jwt_decode_extracts_tenant_claim() -> None:
+    token = _make_jwt({"sub": "user-1", "tenant_id": "acme", "email": "u@a.io"})
+    decoded = _decode_jwt_payload(token)
+    assert decoded is not None
+    assert decoded["tenant_id"] == "acme"
+    assert decoded["sub"] == "user-1"
+
+
+def test_jwt_decode_handles_missing_claim() -> None:
+    token = _make_jwt({"sub": "user-1"})
+    decoded = _decode_jwt_payload(token)
+    assert decoded is not None
+    assert "tenant_id" not in decoded
+
+
+def test_jwt_decode_rejects_malformed_token() -> None:
+    assert _decode_jwt_payload("not.a.jwt.at.all") is None
+    assert _decode_jwt_payload("oneonly") is None
+    assert _decode_jwt_payload("a.b") is None
+    assert _decode_jwt_payload("a.!!!notbase64!!!.c") is None
+
+
+def test_jwt_decode_handles_padding_variations() -> None:
+    # Payloads of different lengths exercise the base64 padding logic.
+    for sub in ("a", "ab", "abc", "abcd"):
+        token = _make_jwt({"sub": sub, "tenant_id": "t1"})
+        decoded = _decode_jwt_payload(token)
+        assert decoded is not None
+        assert decoded["sub"] == sub
+        assert decoded["tenant_id"] == "t1"

@@ -182,3 +182,33 @@ async def test_watch_skills_picks_up_modification(tmp_path: Path) -> None:
             await watcher
         except (asyncio.CancelledError, Exception):
             pass
+
+
+@pytest.mark.asyncio
+async def test_watch_skills_picks_up_deletion(tmp_path: Path) -> None:
+    """Deleting a SKILL.md on disk should evict it from the registry."""
+    reg = SkillRegistry(root=tmp_path, lazy=True)
+    f = tmp_path / "eta.md"
+    _write(f, VALID_SKILL.format(name="eta", desc="will be deleted"))
+    reg.load_from_directory(tmp_path)
+    assert reg.get("eta") is not None
+
+    stop = asyncio.Event()
+    watcher = asyncio.create_task(watch_skills(reg, tmp_path, stop))
+    try:
+        await asyncio.sleep(0.2)
+        f.unlink()
+
+        for _ in range(50):
+            if reg.get("eta") is None:
+                break
+            await asyncio.sleep(0.1)
+
+        assert reg.get("eta") is None, "watcher did not evict deleted skill"
+    finally:
+        stop.set()
+        watcher.cancel()
+        try:
+            await watcher
+        except (asyncio.CancelledError, Exception):
+            pass

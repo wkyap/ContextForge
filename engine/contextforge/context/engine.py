@@ -29,8 +29,20 @@ from contextforge.db.redis import RedisClient
 from contextforge.db.timescale import TimescaleClient
 from contextforge.knowledge.embedding_service import EmbeddingService
 from contextforge.knowledge.temporal_graph import TemporalGraph
+from contextforge.tenancy.context import TenantContext, get_current_tenant
 
 logger = logging.getLogger(__name__)
+
+
+def _scoped_collection(base: str, tenant: TenantContext) -> str:
+    """Compute the tenant-scoped Qdrant collection name.
+
+    Default tenant keeps the legacy un-prefixed names so single-tenant
+    deployments and existing data don't break.
+    """
+    if tenant.is_default:
+        return base
+    return f"{tenant.qdrant_prefix}{base}"
 
 
 class ContextEngine:
@@ -117,20 +129,24 @@ class ContextEngine:
     # ── Private retrieval methods ─────────────────────────────────────────
 
     async def _retrieve_kg_entities(self, query: str) -> list[dict[str, Any]]:
-        """Search KG via fulltext index."""
+        """Search KG via fulltext index, filtered to the current tenant."""
         try:
-            results = await self._graph.fulltext_search(query, limit=5)
+            tenant = get_current_tenant()
+            results = await self._graph.fulltext_search(
+                query, limit=5, tenant_id=tenant.tenant_id
+            )
             return [r["entity"] for r in results]
         except Exception:
             logger.warning("KG fulltext search failed", exc_info=True)
             return []
 
     async def _retrieve_documents(self, query: str) -> list[dict[str, Any]]:
-        """Search document chunks via Qdrant."""
+        """Search document chunks via Qdrant, scoped to the current tenant."""
         try:
+            tenant = get_current_tenant()
             vector = await self._embeddings.embed(query)
             results = await self._qdrant.client.query_points(
-                collection_name="document_chunks",
+                collection_name=_scoped_collection("document_chunks", tenant),
                 query=vector,
                 limit=15,
             )
@@ -167,11 +183,12 @@ class ContextEngine:
             return []
 
     async def _retrieve_communities(self, query: str) -> list[dict[str, Any]]:
-        """Search community summaries via Qdrant."""
+        """Search community summaries via Qdrant, scoped to the current tenant."""
         try:
+            tenant = get_current_tenant()
             vector = await self._embeddings.embed(query)
             results = await self._qdrant.client.query_points(
-                collection_name="community_summaries",
+                collection_name=_scoped_collection("community_summaries", tenant),
                 query=vector,
                 limit=5,
             )
