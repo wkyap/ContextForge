@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from contextforge.pipelines import DAG, DAGValidationError, LocalRunner, Task
+from contextforge.pipelines import DAG, DAGValidationError, LocalRunner
 
 
 def test_dag_rejects_duplicate_task_ids() -> None:

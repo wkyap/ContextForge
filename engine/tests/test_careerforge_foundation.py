@@ -207,7 +207,7 @@ def test_pdpa_nric_detection() -> None:
 
 
 def test_pdpa_nric_masking() -> None:
-    from contextforge.guardrails.pdpa_sg import mask_nric_display, hash_nric
+    from contextforge.guardrails.pdpa_sg import hash_nric, mask_nric_display
 
     masked = mask_nric_display("S1234567A")
     assert masked == "S****567A"

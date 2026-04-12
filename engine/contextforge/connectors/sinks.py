@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from contextforge.connectors.base import Record, Sink
@@ -75,7 +75,7 @@ class TimescaleSink(Sink):
         unit = str(payload.get("unit", ""))
         channel_id = str(payload.get("channel_id", "default"))
         quality = str(payload.get("quality", "valid"))
-        ts = datetime.fromtimestamp(record.timestamp, tz=timezone.utc)
+        ts = datetime.fromtimestamp(record.timestamp, tz=UTC)
 
         try:
             await self._client.insert_telemetry(
