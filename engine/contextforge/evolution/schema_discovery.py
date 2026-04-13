@@ -40,10 +40,14 @@ class SchemaDiscoveryAgent:
         """Analyze current graph state and propose schema additions."""
         # Get current schema
         entity_types = await self._neo4j.execute_cypher(
-            "MATCH (e:Entity {_is_current: true}) RETURN DISTINCT e._type AS type, count(e) AS count ORDER BY count DESC LIMIT 20"
+            "MATCH (e:Entity {_is_current: true}) "
+            "RETURN DISTINCT e._type AS type, count(e) AS count "
+            "ORDER BY count DESC LIMIT 20"
         )
         rel_types = await self._neo4j.execute_cypher(
-            "MATCH ()-[r {_is_current: true}]->() RETURN DISTINCT type(r) AS type, count(r) AS count ORDER BY count DESC LIMIT 20"
+            "MATCH ()-[r {_is_current: true}]->() "
+            "RETURN DISTINCT type(r) AS type, count(r) AS count "
+            "ORDER BY count DESC LIMIT 20"
         )
         sample = await self._neo4j.execute_cypher(
             "MATCH (e:Entity {_is_current: true}) RETURN e {.id, ._type, .name} AS entity LIMIT 30"
@@ -69,7 +73,11 @@ class SchemaDiscoveryAgent:
         try:
             result: dict[str, Any] = json.loads(raw)
         except json.JSONDecodeError:
-            result = {"new_entity_types": [], "new_relationship_types": [], "reasoning": "Parse error"}
+            result = {
+                "new_entity_types": [],
+                "new_relationship_types": [],
+                "reasoning": "Parse error",
+            }
 
         logger.info(
             "Schema discovery: %d new entity types, %d new relationships proposed",

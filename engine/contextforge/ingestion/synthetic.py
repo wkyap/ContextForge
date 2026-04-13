@@ -102,15 +102,19 @@ def _vital(name: str, value: float, unit: str, patient_id: str, time: datetime) 
         "id": str(uuid.uuid4()),
         "status": "final",
         "category": [{"coding": [{"code": "vital-signs"}]}],
-        "code": {"coding": [{"code": name, "display": name.replace("_", " ").title()}]},
+        "code": {
+            "coding": [{"code": name, "display": name.replace("_", " ").title()}],
+        },
         "subject": {"reference": f"Patient/{patient_id}"},
         "effectiveDateTime": time.isoformat(),
         "valueQuantity": {"value": round(value, 1), "unit": unit},
     }
 
 
-def generate_fhir_bundle(num_patients: int = 5, observations_per_patient: int = 10) -> dict[str, Any]:
-    """Generate a complete FHIR Bundle with patients, encounters, observations, conditions, medications."""
+def generate_fhir_bundle(
+    num_patients: int = 5, observations_per_patient: int = 10,
+) -> dict[str, Any]:
+    """Generate a complete FHIR Bundle with patients, encounters, observations."""
     entries: list[dict[str, Any]] = []
 
     for _ in range(num_patients):

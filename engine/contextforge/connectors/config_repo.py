@@ -64,19 +64,24 @@ class ConnectorConfigRepo:
                     description = EXCLUDED.description,
                     updated_at  = NOW()
             """,
-            cfg.name, cfg.source_kind, json.dumps(cfg.config), cfg.sink, cfg.enabled, cfg.description,
+            cfg.name, cfg.source_kind, json.dumps(cfg.config),
+            cfg.sink, cfg.enabled, cfg.description,
         )
         return cfg
 
     async def get(self, name: str) -> ConnectorConfig | None:
         row = await self._pg.fetchrow(
-            "SELECT name, source_kind, config, sink, enabled, description FROM connector_configs WHERE name = $1",
+            "SELECT name, source_kind, config, sink, enabled, description "
+            "FROM connector_configs WHERE name = $1",
             name,
         )
         return self._row_to_cfg(row) if row else None
 
     async def list_all(self, *, enabled_only: bool = False) -> list[ConnectorConfig]:
-        query = "SELECT name, source_kind, config, sink, enabled, description FROM connector_configs"
+        query = (
+            "SELECT name, source_kind, config, sink, enabled, description "
+            "FROM connector_configs"
+        )
         if enabled_only:
             query += " WHERE enabled = TRUE"
         query += " ORDER BY name"

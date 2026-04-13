@@ -10,8 +10,9 @@ import litellm
 
 logger = logging.getLogger(__name__)
 
-_SCHEMA_PROMPT = """You are a knowledge graph schema architect. Given a domain, competency questions,
-and sample documents, propose a graph schema with entity types, relationship types, and properties.
+_SCHEMA_PROMPT = """You are a knowledge graph schema architect. Given a domain, \
+competency questions, and sample documents, propose a graph schema with \
+entity types, relationship types, and properties.
 
 Domain: {domain}
 
@@ -83,7 +84,8 @@ class SchemaGenerator:
             f"- {getattr(q, 'question', str(q))}" for q in questions[:20]
         )
         docs_text = "\n---\n".join(
-            f"Document {i + 1}:\n{doc[:1500]}" for i, doc in enumerate(documents[:8])
+            f"Document {i + 1}:\n{doc[:1500]}"
+            for i, doc in enumerate(documents[:8])
         )
 
         response = await litellm.acompletion(

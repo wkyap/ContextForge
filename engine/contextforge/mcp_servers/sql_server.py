@@ -59,7 +59,10 @@ class SqlTools:
                         "properties": {
                             "table_name": {
                                 "type": "string",
-                                "description": "Fully qualified table name (schema.table or just table)",
+                                "description": (
+                                "Fully qualified table name "
+                                "(schema.table or just table)"
+                            ),
                             },
                         },
                         "required": ["table_name"],

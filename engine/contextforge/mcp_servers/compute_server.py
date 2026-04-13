@@ -116,7 +116,10 @@ class ComputeTools:
                                 "type": "integer",
                                 "enum": [1, 2],
                                 "default": 1,
-                                "description": "SpO2 scale: 1 (default) or 2 (for hypercapnic respiratory failure)",
+                                "description": (
+                                    "SpO2 scale: 1 (default) or 2 "
+                                    "(for hypercapnic respiratory failure)"
+                                ),
                             },
                             "air_or_oxygen": {
                                 "type": "string",
@@ -133,7 +136,10 @@ class ComputeTools:
                             },
                             "consciousness": {
                                 "type": "string",
-                                "enum": ["alert", "cvpu", "confusion", "voice", "pain", "unresponsive"],
+                                "enum": [
+                                    "alert", "cvpu", "confusion",
+                                    "voice", "pain", "unresponsive",
+                                ],
                                 "description": "Level of consciousness (ACVPU scale)",
                             },
                             "temperature": {

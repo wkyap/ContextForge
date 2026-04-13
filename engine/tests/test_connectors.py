@@ -215,7 +215,10 @@ class FakeSkillRegistry:
 
 
 class FakeConfig:
-    def __init__(self, name: str, source_kind: str, config: dict[str, Any], sink: str | None = None) -> None:
+    def __init__(
+        self, name: str, source_kind: str,
+        config: dict[str, Any], sink: str | None = None,
+    ) -> None:
         self.name = name
         self.source_kind = source_kind
         self.config = config

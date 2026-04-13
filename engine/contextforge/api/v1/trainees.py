@@ -194,7 +194,8 @@ async def update_trainee(
     idx += 1
 
     await postgres.execute(
-        f"UPDATE trainees SET {', '.join(updates)} WHERE id = ${idx - 1} OR trainee_code = ${idx - 1}",
+        f"UPDATE trainees SET {', '.join(updates)} "
+        f"WHERE id = ${idx - 1} OR trainee_code = ${idx - 1}",
         params,
     )
     return {"updated": True}

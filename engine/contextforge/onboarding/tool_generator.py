@@ -36,7 +36,8 @@ Return JSON:
       "description": "what the tool does",
       "category": "query | computation | action | analysis",
       "inputs": [
-        {{"name": "param_name", "type": "string | int | list[str] | ...", "required": true, "description": "..."}}
+        {{"name": "param_name", "type": "string | int | list[str] | ...",
+          "required": true, "description": "..."}}
       ],
       "outputs": [
         {{"name": "output_name", "type": "...", "description": "..."}}

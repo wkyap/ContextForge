@@ -126,7 +126,10 @@ class ExcelIngester(BaseIngester):
                 yexp = _safe_int(row.get("Years Experience") or row.get("years_experience", 0))
                 prog = str(row.get("Programme Type") or row.get("programme_type", "")) or None
                 goals = _parse_list_field(row.get("Career Goals") or row.get("career_goals"))
-                sectors = _parse_list_field(row.get("Preferred Sectors") or row.get("preferred_sectors"))
+                sectors = _parse_list_field(
+                    row.get("Preferred Sectors")
+                    or row.get("preferred_sectors"),
+                )
 
                 await self._postgres.execute(
                     """INSERT INTO trainees (id, trainee_code, name, email, phone_masked,
@@ -156,7 +159,9 @@ class ExcelIngester(BaseIngester):
                     result.errors.append("Skipping row: missing code or title")
                     continue
 
-                provider = str(row.get("Provider") or row.get("provider", "NTUC LearningHub"))
+                provider = str(
+                    row.get("Provider") or row.get("provider", "NTUC LearningHub"),
+                )
                 sector = str(row.get("Sector") or row.get("sector", "")) or None
                 dur = _safe_int(row.get("Duration (Weeks)") or row.get("duration_weeks"))
                 mode = str(row.get("Mode") or row.get("mode", "")) or None

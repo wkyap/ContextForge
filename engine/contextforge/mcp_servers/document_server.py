@@ -41,7 +41,10 @@ class DocumentTools:
                             "file_type": {
                                 "type": "string",
                                 "enum": ["pdf", "docx", "html"],
-                                "description": "Document format (inferred from extension if omitted)",
+                                "description": (
+                                    "Document format "
+                                    "(inferred from extension if omitted)"
+                                ),
                             },
                         },
                         "required": ["file_path"],
@@ -71,7 +74,10 @@ class DocumentTools:
                             "chunk_overlap": {
                                 "type": "integer",
                                 "default": 64,
-                                "description": "Number of overlapping tokens between consecutive chunks",
+                                "description": (
+                                    "Number of overlapping tokens "
+                                    "between consecutive chunks"
+                                ),
                             },
                         },
                         "required": ["text"],
@@ -141,8 +147,14 @@ class DocumentTools:
             else:
                 return {"error": f"Unsupported file type: {file_type}"}
 
-            logger.info("extract_text: %s (%s) -> %d chars", file_path, file_type, len(text))
-            return {"text": text, "file_path": file_path, "file_type": file_type, "char_count": len(text)}
+            logger.info(
+                "extract_text: %s (%s) -> %d chars",
+                file_path, file_type, len(text),
+            )
+            return {
+                "text": text, "file_path": file_path,
+                "file_type": file_type, "char_count": len(text),
+            }
         except FileNotFoundError:
             return {"error": f"File not found: {file_path}"}
         except Exception as exc:
@@ -250,7 +262,10 @@ class DocumentTools:
             response = await litellm.acompletion(
                 model=self._litellm_model,
                 messages=[
-                    {"role": "system", "content": "You are a document summarization assistant."},
+                    {
+                        "role": "system",
+                        "content": "You are a document summarization assistant.",
+                    },
                     {"role": "user", "content": prompt},
                 ],
                 max_tokens=max_length * 2,  # rough token budget

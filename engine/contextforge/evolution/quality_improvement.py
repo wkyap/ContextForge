@@ -60,8 +60,10 @@ class QualityImprover:
         prompt = (
             "Based on these response quality evaluations, propose system improvements.\n\n"
             f"Evaluations:\n{json.dumps(evaluations[:10], indent=2, default=str)}\n\n"
-            "Return JSON: {\"proposal_type\": \"prompt_revision|guardrails_adjustment|strategy_optimization\", "
-            "\"title\": \"...\", \"description\": \"...\", \"changes\": [...], \"expected_impact\": \"...\"}"
+            "Return JSON: {\"proposal_type\": "
+            "\"prompt_revision|guardrails_adjustment|strategy_optimization\", "
+            "\"title\": \"...\", \"description\": \"...\", "
+            "\"changes\": [...], \"expected_impact\": \"...\"}"
         )
 
         result = await litellm.acompletion(

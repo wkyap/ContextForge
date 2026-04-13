@@ -53,7 +53,11 @@ class GraphTools:
                         "type": "object",
                         "properties": {
                             "entity_id": {"type": "string"},
-                            "direction": {"type": "string", "enum": ["in", "out", "both"], "default": "both"},
+                            "direction": {
+                                "type": "string",
+                                "enum": ["in", "out", "both"],
+                                "default": "both",
+                            },
                         },
                         "required": ["entity_id"],
                     },

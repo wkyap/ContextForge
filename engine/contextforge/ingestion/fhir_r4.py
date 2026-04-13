@@ -114,7 +114,9 @@ class FHIRIngester:
             "code": coding.get("code", ""),
             "code_system": coding.get("system", ""),
             "display": coding.get("display", ""),
-            "clinical_status": (r.get("clinicalStatus", {}).get("coding") or [{}])[0].get("code", ""),
+            "clinical_status": (
+                (r.get("clinicalStatus", {}).get("coding") or [{}])[0].get("code", "")
+            ),
             "recorded_date": r.get("recordedDate", ""),
         }
 

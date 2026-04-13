@@ -84,7 +84,10 @@ class ApiTools:
                         "properties": {
                             "resource_type": {
                                 "type": "string",
-                                "description": "FHIR resource type, e.g. Patient, Observation, Encounter",
+                                "description": (
+                                "FHIR resource type, e.g. Patient, "
+                                "Observation, Encounter"
+                            ),
                             },
                             "resource_id": {
                                 "type": "string",

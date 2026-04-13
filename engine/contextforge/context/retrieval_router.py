@@ -25,7 +25,7 @@ _CLASSIFY_PROMPT = """Classify this user query into one retrieval strategy.
 
 Strategies:
 - local: asks about a specific entity (patient, asset, drug) — needs KG lookup
-- global: broad/thematic question (trends across patients, overview of conditions) — needs community summaries
+- global: broad/thematic question (trends across patients, overview) — needs community summaries
 - vector: asks about documents, protocols, guidelines — needs document search
 - hybrid: combines entity-specific and document knowledge
 - timeseries: asks about trends, values over time, vital signs, sensor data
@@ -56,7 +56,10 @@ def classify_query_heuristic(query: str) -> RetrievalStrategy:
     """Fast heuristic classifier (no LLM call)."""
     q = query.lower()
 
-    ts_keywords = {"trend", "over time", "last hour", "last 24", "graph", "chart", "vitals", "readings", "sensor"}
+    ts_keywords = {
+        "trend", "over time", "last hour", "last 24",
+        "graph", "chart", "vitals", "readings", "sensor",
+    }
     if any(kw in q for kw in ts_keywords):
         return RetrievalStrategy.TIMESERIES
 

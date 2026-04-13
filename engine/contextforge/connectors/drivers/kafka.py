@@ -33,7 +33,9 @@ class KafkaConnector(ConnectorBase):
                 "to enable the Kafka connector."
             ) from exc
 
-        topics = self.config.get("topics") or ([self.config["topic"]] if "topic" in self.config else None)
+        topics = self.config.get("topics") or (
+            [self.config["topic"]] if "topic" in self.config else None
+        )
         if not topics:
             raise ValueError("kafka connector requires 'topic' or 'topics' in config")
         bootstrap = self.config.get("bootstrap_servers", "localhost:9092")

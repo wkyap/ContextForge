@@ -17,7 +17,9 @@ _PATTERNS: dict[str, re.Pattern[str]] = {
     "ssn": re.compile(r"\b\d{3}-\d{2}-\d{4}\b"),
     "credit_card": re.compile(r"\b(?:\d{4}[-\s]?){3}\d{4}\b"),
     "ip_address": re.compile(r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b"),
-    "date_of_birth": re.compile(r"\b(?:DOB|dob|Date of Birth)[:\s]*\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b"),
+    "date_of_birth": re.compile(
+        r"\b(?:DOB|dob|Date of Birth)[:\s]*\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b",
+    ),
     "mrn": re.compile(r"\bMRN[-:\s]*[A-Z0-9]{5,15}\b", re.IGNORECASE),
 }
 

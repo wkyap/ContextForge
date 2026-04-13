@@ -118,7 +118,10 @@ def compute_news2(
         response = "Emergency response — continuous monitoring, senior clinician review"
     elif total >= 5:
         risk_level = "medium"
-        response = "Urgent response — increased monitoring frequency, clinician review within 30 min"
+        response = (
+            "Urgent response — increased monitoring frequency, "
+            "clinician review within 30 min"
+        )
     elif max_single >= 3:
         risk_level = "low-medium"
         response = "Urgent ward assessment — review by ward clinician"

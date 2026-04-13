@@ -10,8 +10,8 @@ import litellm
 
 logger = logging.getLogger(__name__)
 
-_FORGE_PROMPT = """You are a tool generation system. Given a description of a needed computation tool,
-generate a SKILL.md file and a Python implementation.
+_FORGE_PROMPT = """You are a tool generation system. Given a description of a \
+needed computation tool, generate a SKILL.md file and a Python implementation.
 
 Tool request: {request}
 Domain: {domain}
@@ -52,5 +52,7 @@ class ToolForgeAgent:
         except json.JSONDecodeError:
             result = {"error": "Failed to generate tool"}
 
-        logger.info("Tool forge: generated '%s'", result.get("name", "unknown"))
+        logger.info(
+            "Tool forge: generated '%s'", result.get("name", "unknown"),
+        )
         return result

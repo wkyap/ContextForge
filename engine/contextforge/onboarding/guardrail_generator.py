@@ -37,7 +37,7 @@ Return JSON:
       "name": "guardrail_name",
       "description": "what this guardrail enforces",
       "compliance_framework": "HIPAA | IEC 62443 | GDPR | null",
-      "check_type": "input_validation | output_filtering | access_control | audit_logging | data_retention",
+      "check_type": "input_validation | output_filtering | access_control | audit_logging",
       "trigger": "pre_query | post_generation | on_write | periodic",
       "severity": "block | warn | log",
       "rules": ["rule description 1", "rule description 2"],
@@ -70,7 +70,7 @@ class GuardrailGenerator:
         """
         schema_text = "\n".join(
             f"- {s.get('name', 'unnamed')}: {s.get('description', '')} "
-            f"(properties: {', '.join(p.get('name', '') for p in s.get('properties', []))})"
+            f"(properties: {', '.join(p.get('name', '') for p in s.get('properties', []))})"  # noqa: E501
             for s in schema[:15]
         )
 

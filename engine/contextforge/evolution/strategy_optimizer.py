@@ -25,7 +25,8 @@ class StrategyOptimizer:
             "Analyze these agent performance traces and suggest optimizations.\n"
             "Focus on: retrieval strategy selection, context quality, cost efficiency.\n\n"
             f"Traces:\n{json.dumps(traces[:20], indent=2, default=str)}\n\n"
-            "Return JSON with: {\"observations\": [...], \"recommendations\": [...], \"priority\": \"high|medium|low\"}"
+            "Return JSON with: {\"observations\": [...], "
+            "\"recommendations\": [...], \"priority\": \"high|medium|low\"}"
         )
 
         response = await litellm.acompletion(
@@ -41,5 +42,8 @@ class StrategyOptimizer:
         except json.JSONDecodeError:
             result = {"observations": [], "recommendations": [], "priority": "low"}
 
-        logger.info("Strategy optimizer: %d recommendations", len(result.get("recommendations", [])))
+        logger.info(
+            "Strategy optimizer: %d recommendations",
+            len(result.get("recommendations", [])),
+        )
         return result

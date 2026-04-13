@@ -44,7 +44,12 @@ async def check_hallucination(
         result = await litellm.acompletion(
             model=model,
             messages=[
-                {"role": "user", "content": _CHECK_PROMPT.format(context=context, response=response)},
+                {
+                    "role": "user",
+                    "content": _CHECK_PROMPT.format(
+                        context=context, response=response,
+                    ),
+                },
             ],
             temperature=0.0,
             max_tokens=500,

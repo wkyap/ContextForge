@@ -89,8 +89,10 @@ class SkillRegistry:
         if match is None:
             return False
         self._by_name.pop(match.name, None)
-        self._by_type.get(match.type, []).remove(match) if match in self._by_type.get(match.type, []) else None
-        self._by_domain.get(match.domain, []).remove(match) if match in self._by_domain.get(match.domain, []) else None
+        if match in self._by_type.get(match.type, []):
+            self._by_type[match.type].remove(match)
+        if match in self._by_domain.get(match.domain, []):
+            self._by_domain[match.domain].remove(match)
         return True
 
     def register(self, skill: Skill) -> None:

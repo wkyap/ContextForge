@@ -69,36 +69,127 @@ COMPANY_NAMES = [
 ]
 
 COURSE_DATA = [
-    ("ICT-PY01", "Python for Data Analytics", "ICT", 12, "full-time", ["Python", "Pandas", "SQL"]),
-    ("ICT-JS01", "Full-Stack JavaScript", "ICT", 16, "full-time", ["JavaScript", "React", "Node.js"]),
-    ("ICT-CL01", "AWS Cloud Practitioner", "ICT", 8, "part-time", ["AWS", "Cloud Computing"]),
-    ("ICT-CS01", "Cybersecurity Fundamentals", "ICT", 12, "full-time", ["Network Security", "Encryption"]),
-    ("ICT-DA01", "Data Analytics with Python", "ICT", 12, "full-time", ["Python", "Data Analytics", "Visualisation"]),
-    ("ICT-ML01", "Machine Learning Foundations", "ICT", 16, "full-time", ["Python", "Machine Learning", "Statistics"]),
-    ("ICT-UX01", "UX Design Fundamentals", "ICT", 8, "part-time", ["UX Design", "Figma", "User Research"]),
-    ("ICT-DV01", "DevOps & CI/CD", "ICT", 10, "part-time", ["Docker", "Jenkins", "Git"]),
-    ("ICT-AZ01", "Azure Cloud Solutions", "ICT", 8, "part-time", ["Azure", "Cloud Computing"]),
-    ("ICT-NW01", "Network Administration", "ICT", 12, "full-time", ["Networking", "TCP/IP", "Cisco"]),
-    ("PRO-AC01", "Professional Accounting", "Professional Services", 16, "full-time", ["Accounting", "GAAP", "SAP"]),
-    ("PRO-BK01", "Bookkeeping & Payroll", "Professional Services", 8, "part-time", ["Bookkeeping", "Payroll", "QuickBooks"]),
-    ("PRO-TX01", "Tax Filing & Compliance", "Professional Services", 10, "part-time", ["Tax", "IRAS", "GST"]),
-    ("PRO-HR01", "Human Resource Management", "Professional Services", 12, "full-time", ["HR", "Recruitment", "Payroll"]),
-    ("PRO-DM01", "Digital Marketing", "Professional Services", 12, "full-time", ["SEO", "SEM", "Social Media"]),
-    ("PRO-PM01", "Project Management Professional", "Professional Services", 10, "part-time", ["PMP", "Agile", "Scrum"]),
-    ("TOU-HO01", "Hotel Operations", "Tourism", 12, "full-time", ["Front Desk", "Housekeeping", "PMS"]),
-    ("TOU-FB01", "F&B Service Excellence", "Tourism", 8, "full-time", ["F&B Service", "WSQ", "Hygiene"]),
-    ("TOU-EV01", "Events Management", "Tourism", 10, "part-time", ["Event Planning", "Logistics", "Vendor Mgmt"]),
-    ("TOU-TV01", "Travel Operations", "Tourism", 8, "full-time", ["Reservations", "Ticketing", "GDS"]),
-    ("RET-RS01", "Retail Sales Professional", "Retail", 6, "full-time", ["Sales", "Customer Service", "POS"]),
-    ("RET-EC01", "E-Commerce Operations", "Retail", 10, "part-time", ["E-Commerce", "Shopify", "Logistics"]),
-    ("RET-VM01", "Visual Merchandising", "Retail", 6, "part-time", ["Merchandising", "Display Design"]),
-    ("RET-IM01", "Inventory Management", "Retail", 8, "part-time", ["Inventory", "Supply Chain", "ERP"]),
-    ("ICT-JV01", "Java Enterprise Development", "ICT", 16, "full-time", ["Java", "Spring Boot", "Microservices"]),
-    ("ICT-DB01", "Database Administration", "ICT", 10, "part-time", ["PostgreSQL", "MySQL", "Database"]),
-    ("PRO-AU01", "Internal Auditing", "Professional Services", 12, "part-time", ["Auditing", "Compliance", "Risk"]),
-    ("TOU-CR01", "Cruise Operations", "Tourism", 8, "full-time", ["Cruise", "Maritime", "Hospitality"]),
-    ("RET-LX01", "Luxury Retail Management", "Retail", 8, "part-time", ["Luxury", "Client Relations"]),
-    ("ICT-AI01", "Applied AI & Automation", "ICT", 16, "full-time", ["AI", "Automation", "Python", "NLP"]),
+    (
+        "ICT-PY01", "Python for Data Analytics", "ICT",
+        12, "full-time", ["Python", "Pandas", "SQL"],
+    ),
+    (
+        "ICT-JS01", "Full-Stack JavaScript", "ICT",
+        16, "full-time", ["JavaScript", "React", "Node.js"],
+    ),
+    (
+        "ICT-CL01", "AWS Cloud Practitioner", "ICT",
+        8, "part-time", ["AWS", "Cloud Computing"],
+    ),
+    (
+        "ICT-CS01", "Cybersecurity Fundamentals", "ICT",
+        12, "full-time", ["Network Security", "Encryption"],
+    ),
+    (
+        "ICT-DA01", "Data Analytics with Python", "ICT",
+        12, "full-time", ["Python", "Data Analytics", "Visualisation"],
+    ),
+    (
+        "ICT-ML01", "Machine Learning Foundations", "ICT",
+        16, "full-time", ["Python", "Machine Learning", "Statistics"],
+    ),
+    (
+        "ICT-UX01", "UX Design Fundamentals", "ICT",
+        8, "part-time", ["UX Design", "Figma", "User Research"],
+    ),
+    (
+        "ICT-DV01", "DevOps & CI/CD", "ICT",
+        10, "part-time", ["Docker", "Jenkins", "Git"],
+    ),
+    (
+        "ICT-AZ01", "Azure Cloud Solutions", "ICT",
+        8, "part-time", ["Azure", "Cloud Computing"],
+    ),
+    (
+        "ICT-NW01", "Network Administration", "ICT",
+        12, "full-time", ["Networking", "TCP/IP", "Cisco"],
+    ),
+    (
+        "PRO-AC01", "Professional Accounting", "Professional Services",
+        16, "full-time", ["Accounting", "GAAP", "SAP"],
+    ),
+    (
+        "PRO-BK01", "Bookkeeping & Payroll", "Professional Services",
+        8, "part-time", ["Bookkeeping", "Payroll", "QuickBooks"],
+    ),
+    (
+        "PRO-TX01", "Tax Filing & Compliance", "Professional Services",
+        10, "part-time", ["Tax", "IRAS", "GST"],
+    ),
+    (
+        "PRO-HR01", "Human Resource Management", "Professional Services",
+        12, "full-time", ["HR", "Recruitment", "Payroll"],
+    ),
+    (
+        "PRO-DM01", "Digital Marketing", "Professional Services",
+        12, "full-time", ["SEO", "SEM", "Social Media"],
+    ),
+    (
+        "PRO-PM01", "Project Management Professional",
+        "Professional Services",
+        10, "part-time", ["PMP", "Agile", "Scrum"],
+    ),
+    (
+        "TOU-HO01", "Hotel Operations", "Tourism",
+        12, "full-time", ["Front Desk", "Housekeeping", "PMS"],
+    ),
+    (
+        "TOU-FB01", "F&B Service Excellence", "Tourism",
+        8, "full-time", ["F&B Service", "WSQ", "Hygiene"],
+    ),
+    (
+        "TOU-EV01", "Events Management", "Tourism",
+        10, "part-time", ["Event Planning", "Logistics", "Vendor Mgmt"],
+    ),
+    (
+        "TOU-TV01", "Travel Operations", "Tourism",
+        8, "full-time", ["Reservations", "Ticketing", "GDS"],
+    ),
+    (
+        "RET-RS01", "Retail Sales Professional", "Retail",
+        6, "full-time", ["Sales", "Customer Service", "POS"],
+    ),
+    (
+        "RET-EC01", "E-Commerce Operations", "Retail",
+        10, "part-time", ["E-Commerce", "Shopify", "Logistics"],
+    ),
+    (
+        "RET-VM01", "Visual Merchandising", "Retail",
+        6, "part-time", ["Merchandising", "Display Design"],
+    ),
+    (
+        "RET-IM01", "Inventory Management", "Retail",
+        8, "part-time", ["Inventory", "Supply Chain", "ERP"],
+    ),
+    (
+        "ICT-JV01", "Java Enterprise Development", "ICT",
+        16, "full-time", ["Java", "Spring Boot", "Microservices"],
+    ),
+    (
+        "ICT-DB01", "Database Administration", "ICT",
+        10, "part-time", ["PostgreSQL", "MySQL", "Database"],
+    ),
+    (
+        "PRO-AU01", "Internal Auditing", "Professional Services",
+        12, "part-time", ["Auditing", "Compliance", "Risk"],
+    ),
+    (
+        "TOU-CR01", "Cruise Operations", "Tourism",
+        8, "full-time", ["Cruise", "Maritime", "Hospitality"],
+    ),
+    (
+        "RET-LX01", "Luxury Retail Management", "Retail",
+        8, "part-time", ["Luxury", "Client Relations"],
+    ),
+    (
+        "ICT-AI01", "Applied AI & Automation", "ICT",
+        16, "full-time", ["AI", "Automation", "Python", "NLP"],
+    ),
 ]
 
 JOB_TITLES = {
@@ -122,7 +213,10 @@ JOB_TITLES = {
     ],
 }
 
-LOCATIONS = ["Central", "North", "East", "West", "Jurong", "Changi", "CBD", "Sentosa"]
+LOCATIONS = [
+    "Central", "North", "East", "West",
+    "Jurong", "Changi", "CBD", "Sentosa",
+]
 WORK_ARRANGEMENTS = ["on-site", "hybrid", "remote"]
 
 
@@ -137,26 +231,48 @@ def _hash(val: str) -> str:
     return hashlib.sha256(val.encode()).hexdigest()[:16]
 
 
-async def seed_careerforge_data(postgres: PostgresClient) -> dict[str, int]:
+async def seed_careerforge_data(
+    postgres: PostgresClient,
+) -> dict[str, int]:
     """Generate and insert synthetic CareerForge data. Returns counts."""
     counts: dict[str, int] = {}
     rng = random.Random(42)  # deterministic for reproducibility
 
     # ── Programmes ──────────────────────────────────────────────────
     programmes = [
-        ("SCTP-ICT-2026", "SCTP Information & Communications Technology", "SCTP", "ICT", 75.0, "SSG"),
-        ("SCTP-PRO-2026", "SCTP Professional Services", "SCTP", "Professional Services", 70.0, "SSG"),
-        ("PNT-TOU-2026", "Place-and-Train Tourism & Hospitality", "Place-and-Train", "Tourism", 80.0, "WSG"),
-        ("PNT-RET-2026", "Place-and-Train Retail", "Place-and-Train", "Retail", 75.0, "WSG"),
-        ("EMP-ICT-2026", "Employer-Led ICT Programme", "Employer-led", "ICT", 85.0, "IMDA"),
+        (
+            "SCTP-ICT-2026",
+            "SCTP Information & Communications Technology",
+            "SCTP", "ICT", 75.0, "SSG",
+        ),
+        (
+            "SCTP-PRO-2026", "SCTP Professional Services",
+            "SCTP", "Professional Services", 70.0, "SSG",
+        ),
+        (
+            "PNT-TOU-2026",
+            "Place-and-Train Tourism & Hospitality",
+            "Place-and-Train", "Tourism", 80.0, "WSG",
+        ),
+        (
+            "PNT-RET-2026", "Place-and-Train Retail",
+            "Place-and-Train", "Retail", 75.0, "WSG",
+        ),
+        (
+            "EMP-ICT-2026", "Employer-Led ICT Programme",
+            "Employer-led", "ICT", 85.0, "IMDA",
+        ),
     ]
     programme_ids: dict[str, str] = {}
     for pname, pfull, ptype, psector, target, agency in programmes:
         pid = str(uuid.uuid4())
         programme_ids[pname] = pid
         await postgres.execute(
-            """INSERT INTO programmes (id, name, type, sector, target_placement_rate, reporting_agency)
-               VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING""",
+            """INSERT INTO programmes
+               (id, name, type, sector,
+                target_placement_rate, reporting_agency)
+               VALUES ($1,$2,$3,$4,$5,$6)
+               ON CONFLICT DO NOTHING""",
             [pid, pfull, ptype, psector, target, agency],
         )
     counts["programmes"] = len(programmes)
@@ -168,11 +284,17 @@ async def seed_careerforge_data(postgres: PostgresClient) -> dict[str, int]:
         course_ids[code] = cid
         capacity = rng.randint(20, 40)
         await postgres.execute(
-            """INSERT INTO courses (id, course_code, title, provider, sector,
-               duration_weeks, mode, skills_taught, capacity, current_enrolment)
-               VALUES ($1,$2,$3,'NTUC LearningHub',$4,$5,$6,$7,$8,$9)
+            """INSERT INTO courses
+               (id, course_code, title, provider, sector,
+                duration_weeks, mode, skills_taught,
+                capacity, current_enrolment)
+               VALUES ($1,$2,$3,'NTUC LearningHub',$4,
+                       $5,$6,$7,$8,$9)
                ON CONFLICT (course_code) DO NOTHING""",
-            [cid, code, title, sector, dur, mode, skills, capacity, rng.randint(0, capacity)],
+            [
+                cid, code, title, sector, dur,
+                mode, skills, capacity, rng.randint(0, capacity),
+            ],
         )
     counts["courses"] = len(COURSE_DATA)
 
@@ -181,22 +303,35 @@ async def seed_careerforge_data(postgres: PostgresClient) -> dict[str, int]:
     for i, name in enumerate(COMPANY_NAMES):
         eid = str(uuid.uuid4())
         sector = SECTORS[i % len(SECTORS)]
-        uen = f"{rng.randint(10, 99)}{rng.randint(100000, 999999)}{rng.choice('ABCDEFGHJKLMNP')}"
+        uen = (
+            f"{rng.randint(10, 99)}"
+            f"{rng.randint(100000, 999999)}"
+            f"{rng.choice('ABCDEFGHJKLMNP')}"
+        )
         size = rng.choice(["sme", "sme", "mnc", "mnc", "gov"])
         locs = rng.sample(LOCATIONS, k=rng.randint(1, 3))
         tier = rng.choice(["new", "active", "active", "preferred"])
         employer_ids.append((eid, sector))
+        email = f"hr@{name.lower().replace(' ', '')}.com.sg"
         await postgres.execute(
-            """INSERT INTO employers (id, company_name, uen, sector, size,
-               locations, partnership_tier, contact_email)
-               VALUES ($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT (uen) DO NOTHING""",
-            [eid, name, uen, sector, size, locs, tier, f"hr@{name.lower().replace(' ', '')}.com.sg"],
+            """INSERT INTO employers
+               (id, company_name, uen, sector, size,
+                locations, partnership_tier, contact_email)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+               ON CONFLICT (uen) DO NOTHING""",
+            [eid, name, uen, sector, size, locs, tier, email],
         )
     counts["employers"] = len(COMPANY_NAMES)
 
     # ── Trainees ────────────────────────────────────────────────────
-    trainee_ids: list[tuple[str, str, str]] = []  # (id, sector, programme_id)
-    statuses_pool = ["applied"] * 20 + ["enrolled"] * 30 + ["training"] * 50 + ["completed"] * 60 + ["placed"] * 40
+    trainee_ids: list[tuple[str, str, str]] = []  # (id, sector, pid)
+    statuses_pool = (
+        ["applied"] * 20
+        + ["enrolled"] * 30
+        + ["training"] * 50
+        + ["completed"] * 60
+        + ["placed"] * 40
+    )
     for i in range(200):
         tid = str(uuid.uuid4())
         first = rng.choice(FIRST_NAMES)
@@ -219,15 +354,22 @@ async def seed_careerforge_data(postgres: PostgresClient) -> dict[str, int]:
 
         trainee_ids.append((tid, sector, prog_id))
 
+        email = (
+            f"{first.lower().replace(' ', '')}"
+            f".{last.lower()}@email.com"
+        )
         await postgres.execute(
-            """INSERT INTO trainees (id, trainee_code, name, email, phone_masked,
-               nric_hash, education_level, field_of_study, years_experience,
-               career_goals, preferred_sectors, programme_type, programme_id, status)
-               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+            """INSERT INTO trainees
+               (id, trainee_code, name, email, phone_masked,
+                nric_hash, education_level, field_of_study,
+                years_experience, career_goals,
+                preferred_sectors, programme_type,
+                programme_id, status)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,
+                       $10,$11,$12,$13,$14)
                ON CONFLICT (trainee_code) DO NOTHING""",
             [
-                tid, code, name,
-                f"{first.lower().replace(' ', '')}.{last.lower()}@email.com",
+                tid, code, name, email,
                 f"****{rng.randint(1000,9999)}",
                 _hash(nric),
                 edu, f"{sector} Studies", yexp,
@@ -245,21 +387,32 @@ async def seed_careerforge_data(postgres: PostgresClient) -> dict[str, int]:
         emp_id, emp_sector = rng.choice(employer_ids)
         titles = JOB_TITLES.get(emp_sector, JOB_TITLES["ICT"])
         title = rng.choice(titles)
-        required = rng.sample(["Python", "SQL", "JavaScript", "AWS", "Communication", "Teamwork", "Excel"], k=rng.randint(2, 4))
-        preferred = rng.sample(["Docker", "React", "Java", "Leadership", "Agile"], k=rng.randint(1, 3))
+        required = rng.sample(
+            ["Python", "SQL", "JavaScript", "AWS",
+             "Communication", "Teamwork", "Excel"],
+            k=rng.randint(2, 4),
+        )
+        preferred = rng.sample(
+            ["Docker", "React", "Java", "Leadership", "Agile"],
+            k=rng.randint(1, 3),
+        )
         sal_min = rng.randint(2500, 5000)
         sal_max = sal_min + rng.randint(500, 2000)
         status = rng.choice(["open", "open", "open", "filled", "closed"])
         opening_ids.append((oid, emp_sector))
         await postgres.execute(
-            """INSERT INTO job_openings (id, employer_id, role_title, description,
-               required_skills, preferred_skills, experience_years,
-               salary_min, salary_max, work_arrangement, status)
+            """INSERT INTO job_openings
+               (id, employer_id, role_title, description,
+                required_skills, preferred_skills,
+                experience_years, salary_min, salary_max,
+                work_arrangement, status)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)""",
             [
-                oid, emp_id, title, f"Seeking {title} for our {emp_sector} team.",
+                oid, emp_id, title,
+                f"Seeking {title} for our {emp_sector} team.",
                 required, preferred, rng.randint(0, 5),
-                sal_min, sal_max, rng.choice(WORK_ARRANGEMENTS), status,
+                sal_min, sal_max,
+                rng.choice(WORK_ARRANGEMENTS), status,
             ],
         )
     counts["job_openings"] = 80
@@ -270,16 +423,27 @@ async def seed_careerforge_data(postgres: PostgresClient) -> dict[str, int]:
         plid = str(uuid.uuid4())
         emp_id, _ = rng.choice(employer_ids)
         opening_id = rng.choice(opening_ids)[0] if opening_ids else None
-        ptype = rng.choice(["full-time", "full-time", "part-time", "contract"])
-        source = rng.choice(["lhub-matched", "lhub-matched", "self-sourced"])
+        ptype = rng.choice([
+            "full-time", "full-time", "part-time", "contract",
+        ])
+        source = rng.choice([
+            "lhub-matched", "lhub-matched", "self-sourced",
+        ])
         start = date(2026, 1, 1) + timedelta(days=rng.randint(0, 180))
         salary = rng.randint(2800, 6000)
-        status = rng.choice(["pending", "verified", "verified", "verified", "rejected"])
+        status = rng.choice([
+            "pending", "verified", "verified", "verified", "rejected",
+        ])
         await postgres.execute(
-            """INSERT INTO placements (id, trainee_id, employer_id, opening_id,
-               programme_id, placement_type, source, start_date, salary, status)
+            """INSERT INTO placements
+               (id, trainee_id, employer_id, opening_id,
+                programme_id, placement_type, source,
+                start_date, salary, status)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)""",
-            [plid, tid, emp_id, opening_id, prog_id, ptype, source, start, salary, status],
+            [
+                plid, tid, emp_id, opening_id, prog_id,
+                ptype, source, start, salary, status,
+            ],
         )
     counts["placements"] = len(placed_trainees)
 

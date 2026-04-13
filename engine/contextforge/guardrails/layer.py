@@ -182,7 +182,9 @@ class GuardrailsLayer:
                 continue
             try:
                 if _re.search(pattern_str, output_text, _re.IGNORECASE):
-                    result.domain_issues.append(rule.get("message", rule.get("name", "domain rule")))
+                    result.domain_issues.append(
+                        rule.get("message", rule.get("name", "domain rule")),
+                    )
                     result.passed = False
                     logger.warning("Guardrail: domain rule '%s' triggered", rule.get("name"))
             except _re.error:

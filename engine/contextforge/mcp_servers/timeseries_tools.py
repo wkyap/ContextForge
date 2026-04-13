@@ -25,7 +25,10 @@ class TimeseriesTools:
                         "type": "object",
                         "properties": {
                             "entity_id": {"type": "string"},
-                            "parameter": {"type": "string", "description": "e.g., heart_rate, temperature, vibration"},
+                            "parameter": {
+                                "type": "string",
+                                "description": "e.g., heart_rate, temperature, vibration",
+                            },
                         },
                         "required": ["entity_id", "parameter"],
                     },
@@ -35,7 +38,10 @@ class TimeseriesTools:
                 "type": "function",
                 "function": {
                     "name": "get_trend",
-                    "description": "Get aggregated trend data for an entity parameter over a time range",
+                    "description": (
+                        "Get aggregated trend data for an entity parameter "
+                        "over a time range"
+                    ),
                     "parameters": {
                         "type": "object",
                         "properties": {

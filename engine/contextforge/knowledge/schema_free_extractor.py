@@ -23,7 +23,8 @@ Return a JSON object with this structure:
     {"name": "...", "type": "...", "properties": {...}, "confidence": 0.0-1.0}
   ],
   "relationships": [
-    {"from": "entity_name", "to": "entity_name", "type": "RELATIONSHIP_TYPE", "properties": {...}, "confidence": 0.0-1.0}
+    {"from": "entity_name", "to": "entity_name", "type": "RELATIONSHIP_TYPE",
+     "properties": {...}, "confidence": 0.0-1.0}
   ]
 }
 
@@ -49,8 +50,15 @@ class SchemaFreeExtractor:
         response = await litellm.acompletion(
             model=self._model,
             messages=[
-                {"role": "system", "content": "You extract structured entities from text. Always respond with valid JSON."},
-                {"role": "user", "content": _EXTRACTION_PROMPT.format(text=text)},
+                {
+                    "role": "system",
+                    "content": "You extract structured entities from text. "
+                    "Always respond with valid JSON.",
+                },
+                {
+                    "role": "user",
+                    "content": _EXTRACTION_PROMPT.format(text=text),
+                },
             ],
             response_format={"type": "json_object"},
             temperature=0.0,
