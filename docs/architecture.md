@@ -1,8 +1,14 @@
 # ContextForge Architecture
 
+> **Canonical architecture reference.** This document is the single source of truth for the ContextForge architecture. Other docs (README, CLAUDE.md, app-level ARCHITECTURE.md files) may summarise but must not redefine the layer model, agent flow, or storage topology.
+>
+> **Last verified against code:** 2026-04-15.
+
 ## Overview
 
-ContextForge is an AI-native, sector-agnostic context engineering platform built as a Compound AI System. The engine is domain-independent; all sector-specific knowledge lives in swappable Domain Adapters composed of SKILL.md files.
+ContextForge is a compound AI system. The **platform** provides a reusable engine; **apps** are domain-specific products built on top. The platform has no hard-coded knowledge of any sector. Sector-specific logic lives in `apps/<name>/` as SKILL.md packs, UI views, and migrations.
+
+See [`platform-vs-domain.md`](platform-vs-domain.md) for how the platform/app split is enforced.
 
 ## 8-Layer Architecture
 
