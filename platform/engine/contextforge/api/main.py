@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import importlib
 import logging
+import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -12,46 +14,55 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from contextforge.agents.graph import create_agent
-from contextforge.api.v1 import (
+# Make the repo-level ``apps/`` tree importable as ``apps.<name>``. The engine
+# is installed as the ``contextforge`` package; apps live outside that package
+# and are loaded at runtime per CONTEXTFORGE_APPS_ENABLED.
+_REPO_ROOT = Path(__file__).resolve().parents[4]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from contextforge.agents.graph import create_agent  # noqa: E402
+from contextforge.api.v1 import (  # noqa: E402
     admin,
     agent_configs,
     agents,
     connectors,
-    courses,
-    employers,
     governance,
     graph,
     health,
     onboarding,
-    openings,
     pipelines,
-    placements,
     quality,
-    reports,
     search,
     skills,
     tenants,
     timeseries,
-    trainees,
     ws,
 )
-from contextforge.config import get_settings
-from contextforge.connectors.base import LoggingSink
-from contextforge.connectors.config_repo import ConnectorConfigRepo
-from contextforge.connectors.dlq import DLQRepository
-from contextforge.connectors.runtime import ConnectorSupervisor
-from contextforge.connectors.sinks import CompositeSink, KGSink, TimescaleSink, VectorSink
-from contextforge.db.migrations import run_all_migrations
-from contextforge.db.neo4j import Neo4jClient
-from contextforge.db.postgres import PostgresClient
-from contextforge.db.qdrant import QdrantClient
-from contextforge.db.redis import RedisClient
-from contextforge.db.timescale import TimescaleClient
-from contextforge.knowledge.embedding_service import EmbeddingService
-from contextforge.observability.langfuse_setup import init_langfuse, shutdown_langfuse
-from contextforge.skills.registry import SkillRegistry
-from contextforge.skills.watcher import watch_skills
+from contextforge.config import get_settings  # noqa: E402
+from contextforge.connectors.base import LoggingSink  # noqa: E402
+from contextforge.connectors.config_repo import ConnectorConfigRepo  # noqa: E402
+from contextforge.connectors.dlq import DLQRepository  # noqa: E402
+from contextforge.connectors.runtime import ConnectorSupervisor  # noqa: E402
+from contextforge.connectors.sinks import (  # noqa: E402
+    CompositeSink,
+    KGSink,
+    TimescaleSink,
+    VectorSink,
+)
+from contextforge.db.migrations import run_all_migrations  # noqa: E402
+from contextforge.db.neo4j import Neo4jClient  # noqa: E402
+from contextforge.db.postgres import PostgresClient  # noqa: E402
+from contextforge.db.qdrant import QdrantClient  # noqa: E402
+from contextforge.db.redis import RedisClient  # noqa: E402
+from contextforge.db.timescale import TimescaleClient  # noqa: E402
+from contextforge.knowledge.embedding_service import EmbeddingService  # noqa: E402
+from contextforge.observability.langfuse_setup import (  # noqa: E402
+    init_langfuse,
+    shutdown_langfuse,
+)
+from contextforge.skills.registry import SkillRegistry  # noqa: E402
+from contextforge.skills.watcher import watch_skills  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -239,13 +250,20 @@ def create_app() -> FastAPI:
     app.include_router(admin.router,       prefix=prefix, tags=["admin"])
     app.include_router(ws.router,          prefix=prefix, tags=["websocket"])
 
-    # ── CareerForge domain routes ────────────────────────────────────
-    app.include_router(trainees.router,    prefix=prefix, tags=["trainees"])
-    app.include_router(courses.router,     prefix=prefix, tags=["courses"])
-    app.include_router(employers.router,   prefix=prefix, tags=["employers"])
-    app.include_router(openings.router,    prefix=prefix, tags=["openings"])
-    app.include_router(placements.router,  prefix=prefix, tags=["placements"])
-    app.include_router(reports.router,     prefix=prefix, tags=["reports"])
+    # ── App routers (one module per enabled app) ─────────────────────
+    for name in settings.enabled_apps:
+        module_path = f"apps.{name}.api"
+        try:
+            app_api = importlib.import_module(module_path)
+        except ModuleNotFoundError:
+            logger.warning("App %r enabled but %s not importable", name, module_path)
+            continue
+        register_fn = getattr(app_api, "register", None)
+        if register_fn is None:
+            logger.warning("%s has no register(app, prefix) entrypoint", module_path)
+            continue
+        register_fn(app, prefix=prefix)
+        logger.info("Registered routers from %s", module_path)
 
     # ── Global exception handler ──────────────────────────────────────────
     @app.exception_handler(Exception)
