@@ -13,7 +13,11 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "baseUrl": ".",
+    "paths": {
+      "@apps/*": ["../../apps/*"]
+    }
   },
-  "include": ["src"]
+  "include": ["src", "../../apps/*/ui/**/*"]
 }

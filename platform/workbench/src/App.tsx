@@ -3,35 +3,27 @@ import AgentChat from "./pages/AgentChat";
 import GraphExplorer from "./pages/GraphExplorer";
 import EntityDashboard from "./pages/EntityDashboard";
 import GovernanceDashboard from "./pages/GovernanceDashboard";
-import CareerDashboard from "./pages/CareerDashboard";
-import TraineeList from "./pages/TraineeList";
 import ConnectorMarketplace from "./pages/ConnectorMarketplace";
 import PipelineBuilder from "./pages/PipelineBuilder";
 import AgentBuilder from "./pages/AgentBuilder";
 import QualityStudio from "./pages/QualityStudio";
+import { mountedApps } from "./apps";
 
-const navSections = [
-  {
-    title: "CareerForge",
-    items: [
-      { to: "/", label: "Dashboard" },
-      { to: "/trainees", label: "Trainees" },
-    ],
-  },
-  {
-    title: "Engine",
-    items: [
-      { to: "/chat", label: "Agent Chat" },
-      { to: "/graph", label: "Graph" },
-      { to: "/entities", label: "Entities" },
-      { to: "/connectors", label: "Connectors" },
-      { to: "/pipelines", label: "Pipelines" },
-      { to: "/agents", label: "Agent Builder" },
-      { to: "/quality", label: "Quality Studio" },
-      { to: "/governance", label: "Governance" },
-    ],
-  },
-];
+const platformNav = {
+  title: "Engine",
+  items: [
+    { to: "/chat", label: "Agent Chat" },
+    { to: "/graph", label: "Graph" },
+    { to: "/entities", label: "Entities" },
+    { to: "/connectors", label: "Connectors" },
+    { to: "/pipelines", label: "Pipelines" },
+    { to: "/agents", label: "Agent Builder" },
+    { to: "/quality", label: "Quality Studio" },
+    { to: "/governance", label: "Governance" },
+  ],
+};
+
+const navSections = [...mountedApps.map((a) => a.nav), platformNav];
 
 export default function App() {
   return (
@@ -39,7 +31,7 @@ export default function App() {
       {/* Sidebar */}
       <nav className="w-56 shrink-0 border-r border-gray-200 bg-white flex flex-col">
         <div className="px-4 py-5 font-bold text-lg tracking-tight">
-          <span className="text-brand-700">Career</span>
+          <span className="text-brand-700">Context</span>
           <span className="text-gray-400">Forge</span>
         </div>
         <div className="flex-1 overflow-y-auto px-2 space-y-4">
@@ -78,8 +70,11 @@ export default function App() {
       {/* Main content */}
       <main className="flex-1 overflow-auto">
         <Routes>
-          <Route path="/" element={<CareerDashboard />} />
-          <Route path="/trainees" element={<TraineeList />} />
+          {mountedApps.flatMap((app) =>
+            app.routes.map((r) => (
+              <Route key={`${app.id}:${r.path}`} path={r.path} element={r.element} />
+            )),
+          )}
           <Route path="/chat" element={<AgentChat />} />
           <Route path="/graph" element={<GraphExplorer />} />
           <Route path="/entities" element={<EntityDashboard />} />

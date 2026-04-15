@@ -20,6 +20,20 @@ class Settings(BaseSettings):
     env: str = "development"
     debug: bool = True
     log_level: str = "INFO"
+
+    # ─── Apps (domain packages) ──────────────────────
+    # Directory containing apps/<name>/{skills,ui,migrations,seed}. Path is
+    # resolved relative to the repo root (platform/engine/../../apps by default).
+    apps_dir: str = "apps"
+    # Comma-separated list of app names to mount at startup. Empty = platform
+    # boots with zero apps (useful CI sanity check). The reference app is
+    # "careerforge".
+    apps_enabled: str = "careerforge"
+
+    @property
+    def enabled_apps(self) -> list[str]:
+        return [name.strip() for name in self.apps_enabled.split(",") if name.strip()]
+
     # Default: auth is OFF only in development; ON everywhere else (staging/prod).
     # Override explicitly with CONTEXTFORGE_AUTH_DISABLED=true if you really need it.
     auth_disabled: bool | None = None

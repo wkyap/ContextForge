@@ -91,20 +91,32 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Agent runtime
     agent, checkpointer_ctx = await create_agent(settings)
 
-    # Skill registry — lazy load + hot-reload watcher
-    domains_dir = Path(__file__).resolve().parents[2] / "domains"
-    skill_registry = SkillRegistry(root=domains_dir if domains_dir.exists() else None)
-    # Eager-load once so the catalog is warm on first request; hot-reload picks up
-    # subsequent edits without an API restart.
-    if domains_dir.exists():
-        skill_registry.load_from_directory(domains_dir)
+    # Skill registry — iterate enabled apps and load their SKILL.md packs.
+    # platform/engine/contextforge/api/main.py -> parents[4] is the repo root.
+    repo_root = Path(__file__).resolve().parents[4]
+    apps_root = repo_root / settings.apps_dir
+    app_skill_dirs = [
+        apps_root / name / "skills"
+        for name in settings.enabled_apps
+        if (apps_root / name / "skills").exists()
+    ]
+    skill_registry = SkillRegistry(root=apps_root if apps_root.exists() else None)
+    skill_watch_stop: asyncio.Event | None = None
+    skill_watch_task: asyncio.Task[None] | None = None
+    if app_skill_dirs:
+        for skills_dir in app_skill_dirs:
+            skill_registry.load_from_directory(skills_dir)
+        # Hot-reload watcher spans all enabled app skill dirs.
         skill_watch_stop = asyncio.Event()
         skill_watch_task = asyncio.create_task(
-            watch_skills(skill_registry, domains_dir, skill_watch_stop)
+            watch_skills(skill_registry, app_skill_dirs[0], skill_watch_stop)
         )
     else:
-        skill_watch_stop = None
-        skill_watch_task = None
+        logger.warning(
+            "No app skill directories found under %s for enabled apps %r",
+            apps_root,
+            settings.enabled_apps,
+        )
 
     # Store on app.state for dependency injection
     app.state.postgres = postgres
