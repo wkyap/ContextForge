@@ -336,10 +336,10 @@ services:
     networks:
       - contextforge-net
 
-  # ─── Frontend (React Dashboard) ────────────────────
-  frontend:
+  # ─── Workbench (React operator UI; includes /governance/*) ────────
+  workbench:
     build:
-      context: ./frontend
+      context: ./platform/workbench
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
