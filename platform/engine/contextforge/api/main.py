@@ -82,8 +82,17 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await qdrant.connect()
     await redis.connect()
 
-    # Run migrations
-    await run_all_migrations(postgres, timescale, neo4j, qdrant)
+    # Run migrations (platform first, then per-app)
+    repo_root = Path(__file__).resolve().parents[4]
+    apps_root = repo_root / settings.apps_dir
+    await run_all_migrations(
+        postgres,
+        timescale,
+        neo4j,
+        qdrant,
+        apps_root=apps_root,
+        enabled_apps=settings.enabled_apps,
+    )
 
     # Observability
     init_langfuse(settings)
@@ -92,9 +101,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     agent, checkpointer_ctx = await create_agent(settings)
 
     # Skill registry — iterate enabled apps and load their SKILL.md packs.
-    # platform/engine/contextforge/api/main.py -> parents[4] is the repo root.
-    repo_root = Path(__file__).resolve().parents[4]
-    apps_root = repo_root / settings.apps_dir
+    # (repo_root / apps_root already resolved above for migrations.)
     app_skill_dirs = [
         apps_root / name / "skills"
         for name in settings.enabled_apps

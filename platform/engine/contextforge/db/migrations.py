@@ -19,6 +19,10 @@ _PG_DIR = _MIGRATIONS_ROOT / "postgres"
 _TS_DIR = _MIGRATIONS_ROOT / "timescale"
 _NEO4J_DIR = _MIGRATIONS_ROOT / "neo4j"
 
+# Repo-level apps/ directory (platform/engine/contextforge/db/migrations.py
+# → parents[4] is the repo root).
+_REPO_ROOT = Path(__file__).resolve().parents[4]
+
 
 async def _run_sql_migrations(
     pool_execute: Callable[[str], Awaitable[Any]],
@@ -61,11 +65,13 @@ async def _run_sql_migrations(
         logger.info("[%s] ✓ %s applied", label, path.name)
 
 
-async def _run_cypher_migrations(neo4j: Neo4jClient) -> None:
+async def _run_cypher_migrations(
+    neo4j: Neo4jClient, migrations_dir: Path = _NEO4J_DIR
+) -> None:
     """Execute .cypher files in sorted order, one statement at a time."""
-    cypher_files = sorted(_NEO4J_DIR.glob("*.cypher"))
+    cypher_files = sorted(migrations_dir.glob("*.cypher"))
     if not cypher_files:
-        logger.warning("No Cypher migrations found in %s", _NEO4J_DIR)
+        logger.warning("No Cypher migrations found in %s", migrations_dir)
         return
     for path in cypher_files:
         logger.info("[Neo4j] Applying %s …", path.name)
@@ -96,20 +102,43 @@ async def run_all_migrations(
     timescale: TimescaleClient,
     neo4j: Neo4jClient,
     qdrant: QdrantClient,
+    *,
+    apps_root: Path | None = None,
+    enabled_apps: list[str] | None = None,
 ) -> None:
-    """Run every migration step in order. Called once during app startup."""
+    """Run every migration step in order. Called once during app startup.
+
+    Platform migrations under ``platform/engine/migrations/`` run first. Then,
+    for each app listed in ``enabled_apps``, migrations under
+    ``<apps_root>/<app>/migrations/{postgres,timescale,neo4j}/`` run in order.
+    Apps-aware arguments are optional so existing callers (tests) keep working.
+    """
     logger.info("═══ Starting database migrations ═══")
 
-    # 1. PostgreSQL app tables
+    # 1. Platform PostgreSQL
     await _run_sql_migrations(postgres.execute, _PG_DIR, "Postgres")
 
-    # 2. TimescaleDB hypertables
+    # 2. Platform TimescaleDB
     await _run_sql_migrations(timescale.execute, _TS_DIR, "Timescale")
 
-    # 3. Neo4j schema
-    await _run_cypher_migrations(neo4j)
+    # 3. Platform Neo4j
+    await _run_cypher_migrations(neo4j, _NEO4J_DIR)
 
-    # 4. Qdrant collections
+    # 4. Per-app migrations (iterated in the order apps were enabled)
+    for name in enabled_apps or []:
+        root = (apps_root or _REPO_ROOT / "apps") / name / "migrations"
+        if (root / "postgres").exists():
+            await _run_sql_migrations(
+                postgres.execute, root / "postgres", f"Postgres[{name}]"
+            )
+        if (root / "timescale").exists():
+            await _run_sql_migrations(
+                timescale.execute, root / "timescale", f"Timescale[{name}]"
+            )
+        if (root / "neo4j").exists():
+            await _run_cypher_migrations(neo4j, root / "neo4j")
+
+    # 5. Qdrant collections
     logger.info("[Qdrant] Ensuring collections …")
     await qdrant.ensure_collections()
     logger.info("[Qdrant] ✓ Collections ready")
