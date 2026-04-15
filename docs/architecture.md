@@ -69,21 +69,30 @@ All LLM calls route through LiteLLM, which provides:
 - 3-tier model routing: small (fast/cheap), medium (balanced), large (complex reasoning)
 - Automatic Langfuse callback for cost and latency tracking
 
-## Domain Adapter Pattern
+## App Pattern
 
-Each domain is a directory of SKILL.md files organized by type:
+Each app is a directory under `apps/<name>/` packaged on top of the platform:
 
 ```
-domains/{domain}/
-  schema/       → Knowledge skills (entity definitions)
-  ingestion/    → Ingestion skills (data source adapters)
-  tools/        → Computation skills (domain-specific calculations)
-  templates/    → Template skills (output formatting)
-  guardrails/   → Guardrail skills (domain safety rules)
-  channels/     → Channel skills (messaging configurations)
+apps/{name}/
+  skills/
+    schema/      → Knowledge skills (entity definitions)
+    ingestion/   → Ingestion skills (data source adapters)
+    tools/       → Computation skills (domain-specific calculations)
+    templates/   → Template skills (output formatting)
+    guardrails/  → Guardrail skills (domain safety rules)
+    channels/    → Channel skills (messaging configurations)
+  ui/            → React views + routes.tsx (mounted into the workbench)
+  migrations/    → DDL for schema `app_<name>` only
+  seed/          → Fixtures / synthetic data for dev
 ```
 
-The engine discovers and loads skills at startup. New domains are onboarded by adding a new directory of SKILL.md files — no engine code changes required.
+Apps are enabled at runtime via `CONTEXTFORGE_APPS_ENABLED` (comma-separated).
+The skill registry auto-discovers `apps/<name>/skills/` for each enabled app.
+Data stores are shared but namespaced per [`platform-vs-domain.md`](platform-vs-domain.md).
+
+The reference app is **CareerForge** — workforce / training-to-employment.
+No engine code change is required to add another app.
 
 ## Authentication & Authorization
 
