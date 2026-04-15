@@ -1,0 +1,6 @@
+{
+  "enabledPlugins": {
+    "project-to-marp@project-to-marp": true,
+    "codex@openai-codex": true
+  }
+}
