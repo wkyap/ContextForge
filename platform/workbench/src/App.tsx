@@ -7,23 +7,37 @@ import ConnectorMarketplace from "./pages/ConnectorMarketplace";
 import PipelineBuilder from "./pages/PipelineBuilder";
 import AgentBuilder from "./pages/AgentBuilder";
 import QualityStudio from "./pages/QualityStudio";
-import { mountedApps } from "./apps";
+import { mountedApps, type MountedApp } from "./apps";
 
-const platformNav = {
+const platformApp: MountedApp = {
+  id: "platform",
   title: "Engine",
-  items: [
-    { to: "/chat", label: "Agent Chat" },
-    { to: "/graph", label: "Graph" },
-    { to: "/entities", label: "Entities" },
-    { to: "/connectors", label: "Connectors" },
-    { to: "/pipelines", label: "Pipelines" },
-    { to: "/agents", label: "Agent Builder" },
-    { to: "/quality", label: "Quality Studio" },
-    { to: "/governance", label: "Governance" },
+  nav: {
+    title: "Engine",
+    items: [
+      { to: "/chat", label: "Agent Chat" },
+      { to: "/graph", label: "Graph" },
+      { to: "/entities", label: "Entities" },
+      { to: "/connectors", label: "Connectors" },
+      { to: "/pipelines", label: "Pipelines" },
+      { to: "/agents", label: "Agent Builder" },
+      { to: "/quality", label: "Quality Studio" },
+      { to: "/governance", label: "Governance" },
+    ],
+  },
+  routes: [
+    { path: "/chat", element: <AgentChat /> },
+    { path: "/graph", element: <GraphExplorer /> },
+    { path: "/entities", element: <EntityDashboard /> },
+    { path: "/connectors", element: <ConnectorMarketplace /> },
+    { path: "/pipelines", element: <PipelineBuilder /> },
+    { path: "/agents", element: <AgentBuilder /> },
+    { path: "/quality", element: <QualityStudio /> },
+    { path: "/governance", element: <GovernanceDashboard /> },
   ],
 };
 
-const navSections = [...mountedApps.map((a) => a.nav), platformNav];
+const allApps: MountedApp[] = [...mountedApps, platformApp];
 
 export default function App() {
   return (
@@ -35,13 +49,13 @@ export default function App() {
           <span className="text-gray-400">Forge</span>
         </div>
         <div className="flex-1 overflow-y-auto px-2 space-y-4">
-          {navSections.map((section) => (
-            <div key={section.title}>
+          {allApps.map((app) => (
+            <div key={app.id}>
               <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-gray-300">
-                {section.title}
+                {app.nav.title}
               </p>
               <ul className="space-y-0.5">
-                {section.items.map(({ to, label }) => (
+                {app.nav.items.map(({ to, label }) => (
                   <li key={to}>
                     <NavLink
                       to={to}
@@ -70,19 +84,11 @@ export default function App() {
       {/* Main content */}
       <main className="flex-1 overflow-auto">
         <Routes>
-          {mountedApps.flatMap((app) =>
+          {allApps.flatMap((app) =>
             app.routes.map((r) => (
               <Route key={`${app.id}:${r.path}`} path={r.path} element={r.element} />
             )),
           )}
-          <Route path="/chat" element={<AgentChat />} />
-          <Route path="/graph" element={<GraphExplorer />} />
-          <Route path="/entities" element={<EntityDashboard />} />
-          <Route path="/connectors" element={<ConnectorMarketplace />} />
-          <Route path="/pipelines" element={<PipelineBuilder />} />
-          <Route path="/agents" element={<AgentBuilder />} />
-          <Route path="/quality" element={<QualityStudio />} />
-          <Route path="/governance" element={<GovernanceDashboard />} />
         </Routes>
       </main>
     </div>
