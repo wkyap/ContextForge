@@ -1,0 +1,30 @@
+# ContextForge — Local LLM (Ollama, CPU only)
+
+name: contextforge
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:11434/api/tags || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+    networks:
+      - contextforge-net
+
+volumes:
+  ollama_data:
+
+networks:
+  contextforge-net:
+    driver: bridge

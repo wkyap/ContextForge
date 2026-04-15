@@ -1,0 +1,12 @@
+# ContextForge — Observability profile
+# Minimal stack + Langfuse + ClickHouse for traces/metrics.
+#
+# Usage:
+#   docker compose -f deploy/compose.observability.yml up -d
+
+name: contextforge
+
+include:
+  - path: ./services/data.yml
+  - path: ./services/platform.yml
+  - path: ./services/observability.yml

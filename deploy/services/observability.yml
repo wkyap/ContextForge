@@ -1,0 +1,72 @@
+# ContextForge — Observability stack (ClickHouse + Langfuse)
+
+name: contextforge
+
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:24
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    environment:
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-changeme_clickhouse}
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD-SHELL", "clickhouse-client --query 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    networks:
+      - contextforge-net
+
+  langfuse:
+    image: langfuse/langfuse:3
+    ports:
+      - "3001:3000"
+    environment:
+      DATABASE_URL: ${LANGFUSE_DATABASE_URL:-postgresql://contextforge:changeme_postgres@postgres:5432/langfuse}
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-changeme_clickhouse}
+      NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET:-changeme_nextauth}
+      NEXTAUTH_URL: ${LANGFUSE_NEXTAUTH_URL:-http://localhost:3001}
+      SALT: ${LANGFUSE_SALT:-changeme_salt}
+      LANGFUSE_INIT_ORG_ID: contextforge
+      LANGFUSE_INIT_ORG_NAME: ContextForge
+      LANGFUSE_INIT_PROJECT_ID: contextforge-dev
+      LANGFUSE_INIT_PROJECT_NAME: ContextForge Dev
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-pk-lf-changeme}
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-sk-lf-changeme}
+      LANGFUSE_INIT_USER_EMAIL: admin@contextforge.local
+      LANGFUSE_INIT_USER_NAME: Admin
+      LANGFUSE_INIT_USER_PASSWORD: changeme_langfuse
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3000/api/public/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    networks:
+      - contextforge-net
+
+volumes:
+  clickhouse_data:
+
+networks:
+  contextforge-net:
+    driver: bridge
