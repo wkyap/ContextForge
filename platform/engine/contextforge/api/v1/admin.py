@@ -7,7 +7,7 @@ from typing import Any
 
 from fastapi import APIRouter, Query
 
-from contextforge.api.deps import Neo4jDep, PostgresDep, SettingsDep
+from contextforge.api.deps import PostgresDep, SettingsDep
 
 router = APIRouter(prefix="/admin")
 
@@ -107,20 +107,6 @@ async def get_config(settings: SettingsDep) -> dict[str, Any]:
     }
 
 
-@router.post("/seed/careerforge")
-async def seed_careerforge(postgres: PostgresDep, neo4j: Neo4jDep) -> dict[str, Any]:
-    """Seed CareerForge synthetic data + SSG taxonomy. Dev only."""
-    from contextforge.data.seed.careerforge_synthetic import seed_careerforge_data
-    from contextforge.ingestion.ssg_taxonomy import load_ssg_taxonomy
-
-    taxonomy_result = await load_ssg_taxonomy(neo4j, postgres)
-    data_counts = await seed_careerforge_data(postgres)
-
-    return {
-        "synthetic_data": data_counts,
-        "ssg_taxonomy": {
-            "skills_created": taxonomy_result.entities_created,
-            "relationships_created": taxonomy_result.relationships_created,
-            "errors": taxonomy_result.errors[:5],
-        },
-    }
+# App-specific seed endpoints (e.g. /admin/seed/careerforge) are registered by
+# the app itself via apps/<name>/api/*.py — the platform admin router stays
+# domain-agnostic.
