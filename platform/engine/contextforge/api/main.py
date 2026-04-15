@@ -64,8 +64,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
 
     # Build clients
-    postgres = PostgresClient(settings.postgres_dsn)
-    timescale = TimescaleClient(settings.timescale_dsn)
+    postgres = PostgresClient(settings.postgres_dsn, app_names=settings.enabled_apps)
+    timescale = TimescaleClient(settings.timescale_dsn, app_names=settings.enabled_apps)
     neo4j = Neo4jClient(settings.neo4j_uri, settings.neo4j_user, settings.neo4j_password)
     qdrant = QdrantClient(
         host=settings.qdrant_host,

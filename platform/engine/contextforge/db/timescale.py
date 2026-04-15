@@ -12,25 +12,47 @@ from typing import Any
 
 import asyncpg
 
+from contextforge.namespaces import PLATFORM_PG_SCHEMA, app_pg_schema
+
 logger = logging.getLogger(__name__)
 
 
 class TimescaleClient:
     """Async TimescaleDB client backed by asyncpg."""
 
-    def __init__(self, dsn: str, *, min_size: int = 2, max_size: int = 10) -> None:
+    def __init__(
+        self,
+        dsn: str,
+        *,
+        min_size: int = 2,
+        max_size: int = 10,
+        app_names: list[str] | None = None,
+    ) -> None:
         self._dsn = dsn
         self._min_size = min_size
         self._max_size = max_size
         self._pool: asyncpg.Pool | None = None
+        parts = [PLATFORM_PG_SCHEMA]
+        parts.extend(app_pg_schema(name) for name in (app_names or []))
+        parts.append("public")
+        self._search_path = ", ".join(parts)
 
     # ── Lifecycle ─────────────────────────────────────────────────────────────
 
     async def connect(self) -> None:
         if self._pool is not None:
             return
+
+        search_path = self._search_path
+
+        async def _init_connection(conn: asyncpg.Connection) -> None:
+            await conn.execute(f"SET search_path = {search_path}")
+
         self._pool = await asyncpg.create_pool(
-            self._dsn, min_size=self._min_size, max_size=self._max_size
+            self._dsn,
+            min_size=self._min_size,
+            max_size=self._max_size,
+            init=_init_connection,
         )
         logger.info("TimescaleDB pool connected (%s)", self._dsn.split("@")[-1])
 

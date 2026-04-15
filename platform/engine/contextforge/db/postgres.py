@@ -8,17 +8,32 @@ from typing import Any
 
 import asyncpg
 
+from contextforge.namespaces import PLATFORM_PG_SCHEMA, app_pg_schema
+
 logger = logging.getLogger(__name__)
 
 
 class PostgresClient:
     """Thin async wrapper around an asyncpg connection pool."""
 
-    def __init__(self, dsn: str, *, min_size: int = 2, max_size: int = 10) -> None:
+    def __init__(
+        self,
+        dsn: str,
+        *,
+        min_size: int = 2,
+        max_size: int = 10,
+        app_names: list[str] | None = None,
+    ) -> None:
         self._dsn = dsn
         self._min_size = min_size
         self._max_size = max_size
         self._pool: asyncpg.Pool | None = None
+        # Connection-level search_path ensures unqualified table names resolve
+        # across the platform and app schemas introduced by migration 009.
+        parts = [PLATFORM_PG_SCHEMA]
+        parts.extend(app_pg_schema(name) for name in (app_names or []))
+        parts.append("public")
+        self._search_path = ", ".join(parts)
 
     # ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -26,8 +41,10 @@ class PostgresClient:
         if self._pool is not None:
             return
 
+        search_path = self._search_path
+
         async def _init_connection(conn: asyncpg.Connection) -> None:
-            """Register JSON codec so Python dicts/lists map to JSONB columns."""
+            """Register JSON codec and pin the platform/app search_path."""
             await conn.set_type_codec(
                 "jsonb", encoder=json.dumps, decoder=json.loads,
                 schema="pg_catalog",
@@ -36,6 +53,7 @@ class PostgresClient:
                 "json", encoder=json.dumps, decoder=json.loads,
                 schema="pg_catalog",
             )
+            await conn.execute(f"SET search_path = {search_path}")
 
         self._pool = await asyncpg.create_pool(
             self._dsn, min_size=self._min_size, max_size=self._max_size,
