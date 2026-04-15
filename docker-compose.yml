@@ -276,7 +276,7 @@ services:
   # ─── ContextForge API (FastAPI Engine) ─────────────
   api:
     build:
-      context: ./engine
+      context: ./platform/engine
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
@@ -312,7 +312,7 @@ services:
       CONTEXTFORGE_EMBEDDING_MODEL: ${CONTEXTFORGE_EMBEDDING_MODEL:-text-embedding-3-small}
       CONTEXTFORGE_EMBEDDING_DIM: ${CONTEXTFORGE_EMBEDDING_DIM:-1536}
     volumes:
-      - ./engine:/app
+      - ./platform/engine:/app
       - ./domains:/app/domains
     depends_on:
       postgres:
