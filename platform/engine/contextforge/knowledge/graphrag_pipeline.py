@@ -24,17 +24,26 @@ logger = logging.getLogger(__name__)
 
 
 class GraphRAGPipeline:
-    """End-to-end GraphRAG pipeline: ingest text → KG + vectors + communities."""
+    """End-to-end GraphRAG pipeline: ingest text → KG + vectors + communities.
+
+    Each instance is scoped to one owner: pass ``app="careerforge"`` (or any
+    enabled app name) for app-owned ingestion, or leave ``app=None`` for
+    platform-owned runs. Entities created through the pipeline inherit that
+    ownership label.
+    """
 
     def __init__(
         self,
         neo4j: Neo4jClient,
         qdrant: QdrantClient,
         embeddings: EmbeddingService,
+        *,
+        app: str | None = None,
     ) -> None:
         self._neo4j = neo4j
         self._qdrant = qdrant
         self._embeddings = embeddings
+        self._app = app
         self._graph = TemporalGraph(neo4j)
         self._extractor = SchemaFreeExtractor()
         self._resolver = EntityResolver(neo4j, qdrant, embeddings)
@@ -79,6 +88,7 @@ class GraphRAGPipeline:
                     source_system="graphrag",
                     confidence=ent.get("confidence", 0.5),
                     changed_by="graphrag_pipeline",
+                    app=self._app,
                 )
                 stats["entities_created"] += 1
 

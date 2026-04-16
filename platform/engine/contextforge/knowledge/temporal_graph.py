@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from contextforge.db.neo4j import Neo4jClient
+from contextforge.namespaces import app_neo4j_entity_label
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +38,16 @@ class TemporalGraph:
         source_id: str = "",
         confidence: float = 1.0,
         changed_by: str = "manual",
+        app: str | None = None,
     ) -> dict[str, Any]:
-        """Create a new entity node with temporal metadata."""
+        """Create a new entity node with temporal metadata.
+
+        ``app`` marks node ownership per the platform/app split (see
+        docs/platform-vs-domain.md). ``None`` → platform; pass an app name
+        (e.g. ``"careerforge"``) for app-owned entities. The value is stored
+        both as a property (``_app``) and as an extra label
+        (``:Platform_Entity`` / ``:Cf_Entity``) for Cypher pattern matching.
+        """
         entity_id = properties.get("id") or _new_id()
         now = _now()
 
@@ -58,15 +67,17 @@ class TemporalGraph:
             "_source_id": source_id,
             "_confidence": confidence,
             "_community_id": None,
+            "_app": app,
         }
 
-        result = await self._neo4j.execute_write(
-            """
-            CREATE (e:Entity $props)
-            RETURN e {.*} AS entity
-            """,
-            {"props": props},
+        # Labels come from a controlled allow-list in namespaces.py; safe to
+        # interpolate directly into the Cypher literal.
+        ownership_label = app_neo4j_entity_label(app)
+        cypher = (
+            f"CREATE (e:Entity:`{ownership_label}` $props) "
+            "RETURN e {.*} AS entity"
         )
+        result = await self._neo4j.execute_write(cypher, {"props": props})
         return result[0]["entity"] if result else props
 
     # ── Read ──────────────────────────────────────────────────────────────
@@ -144,21 +155,36 @@ class TemporalGraph:
         changed_by: str = "manual",
         change_reason: str = "",
     ) -> dict[str, Any] | None:
-        """Create a new version of an entity, retiring the current one."""
+        """Create a new version of an entity, retiring the current one.
+
+        The new version inherits the old node's ownership label
+        (``Platform_Entity`` / ``Cf_Entity``). We look it up from the old
+        node's ``_app`` property — pre-read rather than APOC so the runtime
+        stays dependency-free.
+        """
         now = _now()
 
-        result = await self._neo4j.execute_write(
-            """
-            MATCH (old:Entity {id: $id, _is_current: true})
+        probe = await self._neo4j.execute_cypher(
+            "MATCH (old:Entity {id: $id, _is_current: true}) RETURN old._app AS app",
+            {"id": entity_id},
+        )
+        if not probe:
+            return None
+        ownership_label = app_neo4j_entity_label(probe[0].get("app"))
+
+        cypher = f"""
+            MATCH (old:Entity {{id: $id, _is_current: true}})
             SET old._is_current = false, old._valid_to = $now, old._updated_at = $now
             WITH old
-            CREATE (new:Entity)
-            SET new = old {.*, _is_current: true, _valid_from: $now, _valid_to: null,
+            CREATE (new:Entity:`{ownership_label}`)
+            SET new = old {{.*, _is_current: true, _valid_from: $now, _valid_to: null,
                           _version: old._version + 1, _updated_at: $now,
-                          _changed_by: $changed_by, _change_reason: $reason}
+                          _changed_by: $changed_by, _change_reason: $reason}}
             SET new += $props
-            RETURN new {.*} AS entity
-            """,
+            RETURN new {{.*}} AS entity
+            """
+        result = await self._neo4j.execute_write(
+            cypher,
             {
                 "id": entity_id,
                 "now": now,

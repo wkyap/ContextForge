@@ -49,8 +49,15 @@ class SkillBasedIngester(BaseIngester):
     without any code changes.
     """
 
-    def __init__(self, graph: TemporalGraph, skill_path: Path) -> None:
+    def __init__(
+        self,
+        graph: TemporalGraph,
+        skill_path: Path,
+        *,
+        app: str | None = None,
+    ) -> None:
         self._graph = graph
+        self._app = app
         self._skill = self._load_skill(skill_path)
         super().__init__(source_name=f"skill:{self._skill.name}")
 
@@ -129,6 +136,7 @@ class SkillBasedIngester(BaseIngester):
                             source_system=f"skill:{self._skill.name}",
                             source_id=props.get("id", ""),
                             changed_by="skill_based_ingester",
+                            app=self._app,
                         )
                         result.entities_created += 1
                 except Exception as exc:

@@ -41,6 +41,19 @@ def app_neo4j_label_prefix(app_name: str) -> str:
     )
 
 
+# Concrete generic entity label applied alongside :Entity to mark ownership.
+# Platform-owned nodes carry :Platform_Entity; app-owned nodes carry e.g.
+# :Cf_Entity. See docs/platform-vs-domain.md and migrations/neo4j/004.
+PLATFORM_NEO4J_ENTITY_LABEL: str = f"{PLATFORM_NEO4J_LABEL_PREFIX}Entity"
+
+
+def app_neo4j_entity_label(app_name: str | None) -> str:
+    """Return the generic ownership label for the given app (None = platform)."""
+    if app_name is None:
+        return PLATFORM_NEO4J_ENTITY_LABEL
+    return f"{app_neo4j_label_prefix(app_name)}Entity"
+
+
 # ─── Qdrant collection prefixes ───────────────────────────────────
 PLATFORM_QDRANT_PREFIX: str = "platform__"
 APP_QDRANT_PREFIX_TEMPLATE: str = "app_{name}__"

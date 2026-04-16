@@ -38,10 +38,12 @@ class StreamIngester:
         consumer_name: str = "worker-1",
         batch_size: int = 100,
         block_ms: int = 2000,
+        app: str | None = None,
     ) -> None:
         self._redis = redis
         self._timescale = timescale
         self._graph = graph
+        self._app = app
         self._consumer_name = consumer_name
         self._batch_size = batch_size
         self._block_ms = block_ms
@@ -176,6 +178,7 @@ class StreamIngester:
             source_system="stream",
             source_id=source_id,
             changed_by="stream_ingester",
+            app=self._app,
         )
         logger.debug("Event/entity routed to graph: type=%s id=%s", entity_type, source_id)
 

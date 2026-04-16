@@ -72,9 +72,10 @@ The platform stays domain-agnostic. Platform code must never import from `apps/*
 
 Postgres / Timescale: enforced physically by `search_path` and `ALTER TABLE … SET SCHEMA`.
 Qdrant: the four canonical platform collections (`platform__document_chunks`, `platform__entity_embeddings`, `platform__community_summaries`, `platform__skill_catalog`) are exported as constants from `contextforge/db/qdrant.py`; all callsites import them rather than hard-coding names.
-Neo4j / Redis: convention documented in `contextforge/namespaces.py`; new writes should adopt the prefix.
+Neo4j: `TemporalGraph.create_entity(app=…)` writes both an ownership label (`:Platform_Entity` / `:Cf_Entity`) and an `_app` property; the `GraphRAGPipeline`, `StreamIngester`, and `SkillBasedIngester` constructors accept an `app` argument that they thread through. Migration `004_entity_ownership_labels.cypher` back-fills any pre-existing bare `:Entity` nodes as CareerForge-owned.
+Redis: convention documented in `contextforge/namespaces.py`; new writes should adopt the prefix.
 
 ## Known follow-ups
 
-- Move existing Neo4j nodes to the prefixed labels (data migration, not just DDL).
+- **Neo4j read-side scoping** — reads currently match bare `:Entity` so they see across apps. Once there are ≥2 apps, introduce a `CurrentApp` context var (cousin of `TenantContext`) and thread an `app` filter through the read paths in `temporal_graph.py`, `entity_resolution.py`, `community_detection.py`, `graphrag_pipeline.py`, and `evolution/schema_discovery.py`. The how-is-current-app-determined question (route prefix? header? session?) needs its own design pass before the plumbing lands.
 - Remove the `_examples/` connector SKILL docs from history once they land under `docs/examples/` (they were deleted in commit 9 with no replacement — reintroduce if operators ask for them).
