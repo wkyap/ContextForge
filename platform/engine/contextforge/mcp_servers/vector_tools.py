@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from contextforge.db.qdrant import QdrantClient
+from contextforge.db.qdrant import (
+    DOCUMENT_CHUNKS_COLLECTION,
+    ENTITY_EMBEDDINGS_COLLECTION,
+    QdrantClient,
+)
 from contextforge.knowledge.embedding_service import EmbeddingService
 
 
@@ -53,7 +57,7 @@ class VectorTools:
         if tool_name == "search_documents":
             vector = await self._embeddings.embed(args["query"])
             results = await self._qdrant.client.query_points(
-                collection_name="document_chunks",
+                collection_name=DOCUMENT_CHUNKS_COLLECTION,
                 query=vector,
                 limit=args.get("limit", 5),
             )
@@ -64,7 +68,7 @@ class VectorTools:
         elif tool_name == "find_similar_entities":
             vector = await self._embeddings.embed(args["description"])
             results = await self._qdrant.client.query_points(
-                collection_name="entity_embeddings",
+                collection_name=ENTITY_EMBEDDINGS_COLLECTION,
                 query=vector,
                 limit=args.get("limit", 5),
             )

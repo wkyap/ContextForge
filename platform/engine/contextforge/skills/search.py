@@ -7,12 +7,12 @@ from typing import Any
 
 from qdrant_client.models import PointStruct
 
-from contextforge.db.qdrant import QdrantClient
+from contextforge.db.qdrant import SKILL_CATALOG_COLLECTION, QdrantClient
 from contextforge.skills.loader import Skill
 
 logger = logging.getLogger(__name__)
 
-COLLECTION = "skill_catalog"
+COLLECTION = SKILL_CATALOG_COLLECTION
 
 
 async def index_skills(

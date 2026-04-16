@@ -12,14 +12,22 @@ from qdrant_client.models import (
     VectorParams,
 )
 
+from contextforge.namespaces import PLATFORM_QDRANT_PREFIX
+
 logger = logging.getLogger(__name__)
 
-# The four canonical collections and their purposes.
+# Canonical platform-owned collection names, prefixed per namespaces.py so that
+# apps can add their own `app_<name>__*` collections without risk of collision.
+DOCUMENT_CHUNKS_COLLECTION = f"{PLATFORM_QDRANT_PREFIX}document_chunks"
+ENTITY_EMBEDDINGS_COLLECTION = f"{PLATFORM_QDRANT_PREFIX}entity_embeddings"
+COMMUNITY_SUMMARIES_COLLECTION = f"{PLATFORM_QDRANT_PREFIX}community_summaries"
+SKILL_CATALOG_COLLECTION = f"{PLATFORM_QDRANT_PREFIX}skill_catalog"
+
 COLLECTIONS: dict[str, str] = {
-    "document_chunks": "Document text embeddings for semantic search",
-    "entity_embeddings": "Knowledge-graph entity embeddings",
-    "community_summaries": "GraphRAG community summary embeddings",
-    "skill_catalog": "Skill description embeddings for discovery",
+    DOCUMENT_CHUNKS_COLLECTION: "Document text embeddings for semantic search",
+    ENTITY_EMBEDDINGS_COLLECTION: "Knowledge-graph entity embeddings",
+    COMMUNITY_SUMMARIES_COLLECTION: "GraphRAG community summary embeddings",
+    SKILL_CATALOG_COLLECTION: "Skill description embeddings for discovery",
 }
 
 

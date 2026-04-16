@@ -71,11 +71,10 @@ The platform stays domain-agnostic. Platform code must never import from `apps/*
 | Redis       | `cf:platform:*`     | `cf:app:careerforge:*`         |
 
 Postgres / Timescale: enforced physically by `search_path` and `ALTER TABLE … SET SCHEMA`.
-Neo4j / Qdrant / Redis: convention documented in `contextforge/namespaces.py`; new writes should adopt the prefix. A follow-up task tracks renaming existing Qdrant collections to carry the `platform__` prefix.
+Qdrant: the four canonical platform collections (`platform__document_chunks`, `platform__entity_embeddings`, `platform__community_summaries`, `platform__skill_catalog`) are exported as constants from `contextforge/db/qdrant.py`; all callsites import them rather than hard-coding names.
+Neo4j / Redis: convention documented in `contextforge/namespaces.py`; new writes should adopt the prefix.
 
 ## Known follow-ups
 
-- Rename Qdrant collections to carry the `platform__` prefix (touches 15 files; deferred from commit 7).
 - Move existing Neo4j nodes to the prefixed labels (data migration, not just DDL).
-- Consider moving `apps/careerforge/migrations/` (currently empty) to host the CareerForge DDL that still sits in `platform/engine/migrations/postgres/002_careerforge_tables.sql` + `003_careerforge_autonomy.sql`.
 - Remove the `_examples/` connector SKILL docs from history once they land under `docs/examples/` (they were deleted in commit 9 with no replacement — reintroduce if operators ask for them).

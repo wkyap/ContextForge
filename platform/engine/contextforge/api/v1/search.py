@@ -9,6 +9,7 @@ from fastapi import APIRouter, Query, Request
 from pydantic import BaseModel, Field
 
 from contextforge.api.deps import Neo4jDep, QdrantDep, SettingsDep
+from contextforge.db.qdrant import DOCUMENT_CHUNKS_COLLECTION
 from contextforge.knowledge.embedding_service import EmbeddingService
 from contextforge.knowledge.temporal_graph import TemporalGraph
 from contextforge.skills.search import search_skills
@@ -44,7 +45,7 @@ async def semantic_search(
     if "documents" in body.sources:
         try:
             doc_results = await qdrant.search(
-                "document_chunks",
+                DOCUMENT_CHUNKS_COLLECTION,
                 query_vector,
                 limit=body.limit,
             )
@@ -104,7 +105,7 @@ async def quick_search(
 
     # Document vector search
     try:
-        docs = await qdrant.search("document_chunks", query_vector, limit=limit)
+        docs = await qdrant.search(DOCUMENT_CHUNKS_COLLECTION, query_vector, limit=limit)
         for pt in docs:
             results.append({"type": "document", **pt.payload, "score": pt.score})
     except Exception:

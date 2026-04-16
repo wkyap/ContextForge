@@ -8,7 +8,12 @@ from typing import Any
 from qdrant_client.models import PointStruct
 
 from contextforge.db.neo4j import Neo4jClient
-from contextforge.db.qdrant import QdrantClient
+from contextforge.db.qdrant import (
+    COMMUNITY_SUMMARIES_COLLECTION,
+    DOCUMENT_CHUNKS_COLLECTION,
+    ENTITY_EMBEDDINGS_COLLECTION,
+    QdrantClient,
+)
 from contextforge.knowledge.community_detection import CommunityDetector
 from contextforge.knowledge.embedding_service import EmbeddingService
 from contextforge.knowledge.entity_resolution import EntityResolver
@@ -145,7 +150,7 @@ class GraphRAGPipeline:
             )
             for i, (doc, vec) in enumerate(zip(documents, vectors))
         ]
-        await self._qdrant.upsert("document_chunks", points)
+        await self._qdrant.upsert(DOCUMENT_CHUNKS_COLLECTION, points)
         return len(points)
 
     async def _embed_entities(self) -> None:
@@ -177,7 +182,7 @@ class GraphRAGPipeline:
             )
             for i, (ent, vec) in enumerate(zip(entities, vectors))
         ]
-        await self._qdrant.upsert("entity_embeddings", points)
+        await self._qdrant.upsert(ENTITY_EMBEDDINGS_COLLECTION, points)
         logger.info("Embedded %d entities into Qdrant", len(points))
 
     async def _embed_community_summaries(self) -> None:
@@ -227,5 +232,5 @@ class GraphRAGPipeline:
             )
 
         if points:
-            await self._qdrant.upsert("community_summaries", points)
+            await self._qdrant.upsert(COMMUNITY_SUMMARIES_COLLECTION, points)
             logger.info("Embedded %d community summaries", len(points))

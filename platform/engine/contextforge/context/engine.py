@@ -24,7 +24,11 @@ from contextforge.context.retrieval_router import (
     classify_query_heuristic,
 )
 from contextforge.db.neo4j import Neo4jClient
-from contextforge.db.qdrant import QdrantClient
+from contextforge.db.qdrant import (
+    COMMUNITY_SUMMARIES_COLLECTION,
+    DOCUMENT_CHUNKS_COLLECTION,
+    QdrantClient,
+)
 from contextforge.db.redis import RedisClient
 from contextforge.db.timescale import TimescaleClient
 from contextforge.knowledge.embedding_service import EmbeddingService
@@ -37,8 +41,9 @@ logger = logging.getLogger(__name__)
 def _scoped_collection(base: str, tenant: TenantContext) -> str:
     """Compute the tenant-scoped Qdrant collection name.
 
-    Default tenant keeps the legacy un-prefixed names so single-tenant
-    deployments and existing data don't break.
+    *base* already carries the platform/app prefix (e.g. ``platform__``). For
+    non-default tenants we prepend the tenant slug so multi-tenant deployments
+    get physically separate collections.
     """
     if tenant.is_default:
         return base
@@ -146,7 +151,7 @@ class ContextEngine:
             tenant = get_current_tenant()
             vector = await self._embeddings.embed(query)
             results = await self._qdrant.client.query_points(
-                collection_name=_scoped_collection("document_chunks", tenant),
+                collection_name=_scoped_collection(DOCUMENT_CHUNKS_COLLECTION, tenant),
                 query=vector,
                 limit=15,
             )
@@ -188,7 +193,7 @@ class ContextEngine:
             tenant = get_current_tenant()
             vector = await self._embeddings.embed(query)
             results = await self._qdrant.client.query_points(
-                collection_name=_scoped_collection("community_summaries", tenant),
+                collection_name=_scoped_collection(COMMUNITY_SUMMARIES_COLLECTION, tenant),
                 query=vector,
                 limit=5,
             )

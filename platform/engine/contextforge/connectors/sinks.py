@@ -15,7 +15,7 @@ from typing import Any
 
 from contextforge.connectors.base import Record, Sink
 from contextforge.db.neo4j import Neo4jClient
-from contextforge.db.qdrant import QdrantClient
+from contextforge.db.qdrant import DOCUMENT_CHUNKS_COLLECTION, QdrantClient
 from contextforge.db.timescale import TimescaleClient
 from contextforge.knowledge.embedding_service import EmbeddingService
 
@@ -165,7 +165,7 @@ class VectorSink(Sink):
         self,
         qdrant: QdrantClient,
         embedder: EmbeddingService,
-        collection: str = "document_chunks",
+        collection: str = DOCUMENT_CHUNKS_COLLECTION,
         batch_size: int = 1,
         flush_interval_s: float = 2.0,
     ) -> None:

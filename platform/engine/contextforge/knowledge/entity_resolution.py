@@ -6,7 +6,7 @@ import logging
 from typing import Any
 
 from contextforge.db.neo4j import Neo4jClient
-from contextforge.db.qdrant import QdrantClient
+from contextforge.db.qdrant import ENTITY_EMBEDDINGS_COLLECTION, QdrantClient
 from contextforge.knowledge.embedding_service import EmbeddingService
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,7 @@ class EntityResolver:
         from qdrant_client.models import FieldCondition, Filter, MatchValue
 
         qdrant_results = await self._qdrant.client.query_points(
-            collection_name="entity_embeddings",
+            collection_name=ENTITY_EMBEDDINGS_COLLECTION,
             query=vector,
             limit=10,
             score_threshold=self._threshold,
