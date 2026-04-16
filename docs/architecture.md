@@ -1,8 +1,14 @@
 # ContextForge Architecture
 
+> **Canonical architecture reference.** This document is the single source of truth for the ContextForge architecture. Other docs (README, CLAUDE.md, app-level ARCHITECTURE.md files) may summarise but must not redefine the layer model, agent flow, or storage topology.
+>
+> **Last verified against code:** 2026-04-15.
+
 ## Overview
 
-ContextForge is an AI-native, sector-agnostic context engineering platform built as a Compound AI System. The engine is domain-independent; all sector-specific knowledge lives in swappable Domain Adapters composed of SKILL.md files.
+ContextForge is a compound AI system. The **platform** provides a reusable engine; **apps** are domain-specific products built on top. The platform has no hard-coded knowledge of any sector. Sector-specific logic lives in `apps/<name>/` as SKILL.md packs, UI views, and migrations.
+
+See [`platform-vs-domain.md`](platform-vs-domain.md) for how the platform/app split is enforced.
 
 ## 8-Layer Architecture
 
@@ -63,21 +69,30 @@ All LLM calls route through LiteLLM, which provides:
 - 3-tier model routing: small (fast/cheap), medium (balanced), large (complex reasoning)
 - Automatic Langfuse callback for cost and latency tracking
 
-## Domain Adapter Pattern
+## App Pattern
 
-Each domain is a directory of SKILL.md files organized by type:
+Each app is a directory under `apps/<name>/` packaged on top of the platform:
 
 ```
-domains/{domain}/
-  schema/       → Knowledge skills (entity definitions)
-  ingestion/    → Ingestion skills (data source adapters)
-  tools/        → Computation skills (domain-specific calculations)
-  templates/    → Template skills (output formatting)
-  guardrails/   → Guardrail skills (domain safety rules)
-  channels/     → Channel skills (messaging configurations)
+apps/{name}/
+  skills/
+    schema/      → Knowledge skills (entity definitions)
+    ingestion/   → Ingestion skills (data source adapters)
+    tools/       → Computation skills (domain-specific calculations)
+    templates/   → Template skills (output formatting)
+    guardrails/  → Guardrail skills (domain safety rules)
+    channels/    → Channel skills (messaging configurations)
+  ui/            → React views + routes.tsx (mounted into the workbench)
+  migrations/    → DDL for schema `app_<name>` only
+  seed/          → Fixtures / synthetic data for dev
 ```
 
-The engine discovers and loads skills at startup. New domains are onboarded by adding a new directory of SKILL.md files — no engine code changes required.
+Apps are enabled at runtime via `CONTEXTFORGE_APPS_ENABLED` (comma-separated).
+The skill registry auto-discovers `apps/<name>/skills/` for each enabled app.
+Data stores are shared but namespaced per [`platform-vs-domain.md`](platform-vs-domain.md).
+
+The reference app is **CareerForge** — workforce / training-to-employment.
+No engine code change is required to add another app.
 
 ## Authentication & Authorization
 
